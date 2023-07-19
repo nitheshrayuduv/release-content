@@ -1,0 +1,223 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  home: Digital.ai - Official/Workflows/Digital.ai Deploy
+spec:
+- template: Setup ArgoCD application with initial deployment
+  description: "Create an application in ArgoCD that can be deployed to Kubernetes\
+    \ cluster, with initial deployment"
+  scheduledStartDate: 2022-12-13T13:30:00+05:30
+  dueDate: 2022-12-13T14:30:00+05:30
+  phases:
+  - phase: Check if application exists
+    tasks:
+    - name: Application input
+      type: xlrelease.UserInputTask
+      description: Input for application information together with the ArgoCD server
+      owner: "${release.owner}"
+      variables:
+      - argoCDApiServer
+      - gitRepo
+      - path
+      - branch
+      - clusterUrl
+    - name: Check if application exists
+      type: argocd.CheckIfApplicationExists
+      description: |-
+        This is an automated task that checks whether an application already exists on the server based on the details provided.
+
+        If the application does not exist, the task will be completed and the workflow will proceed to the next task.
+
+        However, if the application already exists, the task will fail, and the workflow will be aborted. This is to prevent creating duplicate applications and ensure the proper functioning of the Argo CD Server.
+      variableMapping:
+        commandResponse: "${applicationExistsResponse}"
+        argoServer: "${argoCDApiServer}"
+      capabilities:
+      - remote
+      gitRepo: "${gitRepo}"
+      path: "${path}"
+      branch: "${branch}"
+      clusterUrl: "${clusterUrl}"
+    color: '#3d6c9e'
+  - phase: Check if namespace exists
+    tasks:
+    - name: Namespace input
+      type: xlrelease.UserInputTask
+      description: |-
+        This task involves providing the namespace in which the application will be deployed and run from. Additionally, you will need to provide the Kubernetes API server to connect to for deploying and managing the application.
+
+        If you do not provide a namespace, the task will use the default value. Please ensure that the provided namespace is valid and appropriate for your application
+      owner: "${release.owner}"
+      precondition: |-
+        import json
+
+        if releaseVariables["applicationExistsResponse"]["exists"] == "true":
+          raise Exception("Application app already exists!")
+
+        result = True
+      variables:
+      - kubernetesApiServer
+      - namespace
+    - name: Check if namespace exists
+      type: kubernetes.ExistsNamespace
+      description: "Checks if '${namespace}' namespace already exists."
+      variableMapping:
+        server: "${kubernetesApiServer}"
+        commandResponse: "${namespaceExistsResponse}"
+      capabilities:
+      - remote
+      namespace: "${namespace}"
+    color: '#3d6c9e'
+  - phase: Create namespace
+    tasks:
+    - name: Create namespace
+      type: kubernetes.CreateNamespace
+      description: "Creates the ${namespace} namespace. If it already exists, this\
+        \ task is skipped."
+      precondition: |-
+        import json
+
+        result = (releaseVariables["namespaceExistsResponse"]["exists"] != "true")
+      variableMapping:
+        server: "${kubernetesApiServer}"
+      capabilities:
+      - remote
+      namespace: "${namespace}"
+    color: '#3d6c9e'
+  - phase: Create ArgoCD application
+    tasks:
+    - name: Application information input
+      type: xlrelease.UserInputTask
+      description: Application name and ArgoCD project.
+      owner: "${release.owner}"
+      variables:
+      - applicationName
+      - projectName
+      - environmentTag
+      - managedBy
+    - name: Create ArgoCD application
+      type: argocd.CreateApplication
+      description: "Deploys ArgoCD application with given information about application\
+        \ name, project, git repo, path and branch."
+      variableMapping:
+        argoServer: "${argoCDApiServer}"
+      capabilities:
+      - remote
+      appName: "${applicationName}"
+      project: "${projectName}"
+      url: "${gitRepo}"
+      path: "${path}"
+      revision: "${branch}"
+      namespace: "${namespace}"
+    color: '#3d6c9e'
+  - phase: Get application status
+    tasks:
+    - name: Get application status
+      type: argocd.CheckApplicationStatus
+      description: Checks if application is successfully deployed.
+      variableMapping:
+        argoServer: "${argoCDApiServer}"
+      capabilities:
+      - remote
+      applicationName: "${applicationName}"
+    - name: Create managed application
+      type: xlrelease.ScriptTask
+      owner: admin
+      script: |-
+        from com.xebialabs.xlrelease.api.v1.views import ManagedApplicationView
+        from com.xebialabs.xlrelease.api.v1.views import ConnectionServerView
+
+        from java.util import Date
+        from java.text import SimpleDateFormat
+
+        dateCreated = Date()
+
+        configuration = configurationApi.getConfiguration("${argoCDApiServer}")
+        url = configuration["url"]
+
+        connectionServer = ConnectionServerView("${argoCDApiServer}", "server", "argocd.APIServer", url)
+
+        requestBody = ManagedApplicationView()
+        requestBody.applicationName = "${applicationName}"
+        requestBody.managedBy = "${managedBy}"
+        requestBody.dateCreated = dateCreated
+        requestBody.environmentTag = "${environmentTag}"
+        requestBody.applicationReference = "${clusterUrl}"
+        requestBody.connectionServer = connectionServer
+
+        res = managedApplicationApi.addManagedApplication(requestBody)
+    color: '#3d6c9e'
+  tags:
+  - stepper
+  - app-pipeline-templates
+  variables:
+  - type: xlrelease.MapStringStringVariable
+    key: applicationExistsResponse
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.MapStringStringVariable
+    key: namespaceExistsResponse
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: gitRepo
+    showOnReleaseStart: false
+    label: Git Repo
+    description: Git repository from where application configuration will be fetched
+  - type: xlrelease.StringVariable
+    key: path
+    showOnReleaseStart: false
+    label: Path
+    description: Path inside git repository where configuration is located
+  - type: xlrelease.StringVariable
+    key: branch
+    showOnReleaseStart: false
+    label: Branch
+    description: Git branch
+    value: HEAD
+  - type: xlrelease.StringVariable
+    key: clusterUrl
+    showOnReleaseStart: false
+    label: Cluster url
+    description: Kubernetes cluster URL
+    value: https://kubernetes.default.svc
+  - type: xlrelease.StringVariable
+    key: namespace
+    showOnReleaseStart: false
+    label: Namespace
+    value: default
+  - type: xlrelease.StringVariable
+    key: applicationName
+    showOnReleaseStart: false
+    label: Application name
+  - type: xlrelease.StringVariable
+    key: projectName
+    showOnReleaseStart: false
+    label: Project name
+    value: default
+  - type: xlrelease.ReferenceVariable
+    key: kubernetesApiServer
+    showOnReleaseStart: false
+    label: Kubernetes API server
+    description: Kubernetes API server where ArgoCD is installed
+    referencedType: kubernetes.APIServer
+  - type: xlrelease.ReferenceVariable
+    key: argoCDApiServer
+    showOnReleaseStart: false
+    label: ArgoCD API server
+    description: ArgoCD API server where application will be deployed
+    referencedType: argocd.APIServer
+  - type: xlrelease.StringVariable
+    key: environmentTag
+    showOnReleaseStart: false
+    label: Environment tag
+    description: Tag of the target environment
+    value: PROD
+  - type: xlrelease.StringVariable
+    key: managedBy
+    showOnReleaseStart: false
+    label: Managed by
+    value: Release
+  scriptUsername: admin
+  riskProfile: Default risk profile

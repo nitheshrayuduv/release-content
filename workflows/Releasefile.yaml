@@ -1,5 +1,37 @@
 ---
 apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  home: Digital.ai - Official/Workflows
+spec:
+- directory: ArgoCD
+  children:
+  - type: xlrelease.FolderVersioningSettings
+    gitConnection: Digital.ai Official Repository
+    scmPath: workflows/argo-cd
+    branch: main
+    exportPatterns: false
+    exportVariables: false
+    exportTriggers: false
+    exportConfiguration: false
+    exportDashboards: false
+    exportNotifications: false
+    versioningStyle: multipleFilesPerCIType
+- directory: Digital.ai Deploy
+  children:
+  - type: xlrelease.FolderVersioningSettings
+    gitConnection: Digital.ai Official Repository
+    scmPath: workflows/digitalai-deploy
+    branch: main
+    exportPatterns: false
+    exportVariables: false
+    exportTriggers: false
+    exportConfiguration: false
+    exportDashboards: false
+    exportNotifications: false
+    versioningStyle: multipleFilesPerCIType
+---
+apiVersion: xl-release/v1
 kind: Permissions
 metadata:
   home: Digital.ai - Official/Workflows

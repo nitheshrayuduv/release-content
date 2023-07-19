@@ -1,0 +1,327 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  home: Digital.ai - Official/Workflows/Digital.ai Deploy
+spec:
+- template: Tomcat DataSource Setup on SSH Host with Digital.ai Deploy
+  description: "Easily create an application in Digital.ai Deploy that can be used\
+    \ to create a DataSource in a Remote Tomcat Server, including its respective environment\
+    \ and infrastructure setup."
+  scheduledStartDate: 2023-03-23T09:00:00+05:30
+  dueDate: 2023-03-23T10:00:00+05:30
+  phases:
+  - phase: Setup Infra and Env
+    tasks:
+    - name: Specify Deploy Server Details
+      type: xlrelease.UserInputTask
+      description: Select the Deploy Server Connection onto which the Tomcat application
+        has to be created. You can create a new connection if you have not created
+        one.
+      owner: admin
+      variables:
+      - deploy-server
+    - name: Specify Environment Name
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      owner: admin
+      variables:
+      - environment-name
+    - name: Create Environment
+      type: deploy.CreateCI
+      owner: admin
+      variableMapping:
+        server: "${deploy-server}"
+      capabilities:
+      - remote
+      ciID: "Environments/${environment-name}"
+      ciType: udm.Environment
+      jsonDescriptor: "{}"
+    - name: Specify Tomcat Host Parameters
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      owner: admin
+      variables:
+      - host-identifier
+      - sudo-username
+      - os
+      - address
+      - port
+      - ssh-username
+      - ssh-privatekey
+    - name: Configure Remote Host
+      type: deploy.CreateCI
+      owner: admin
+      variableMapping:
+        server: "${deploy-server}"
+      capabilities:
+      - remote
+      ciID: "Infrastructure/${host-identifier}"
+      ciType: overthere.SshHost
+      jsonDescriptor: |-
+        {
+            "stagingDirectoryPath":"",
+            "sudoUsername":"${sudo-username}",
+            "suUsername":"",
+            "suPassword":"",
+            "os":"${os}",
+            "connectionType":"SUDO",
+            "address":"${address}",
+            "port":"${port}",
+            "username":"${ssh-username}",
+            "password":"",
+            "privateKeyFile":"${ssh-privatekey}",
+            "passphrase":""
+        }
+      addToEnvironment: true
+      envID: "Environments/${environment-name}"
+    - name: Check Remote Host Connection
+      type: deploy.ControlTask
+      owner: admin
+      variableMapping:
+        server: "${deploy-server}"
+      capabilities:
+      - remote
+      ciId: "Infrastructure/${host-identifier}"
+      taskName: checkConnection
+      numberOfContinueRetrials: 0
+      pollingInterval: 10
+      numberOfPollingTrials: 0
+      displayStepLogs: true
+      connectionRetries: 10
+    - name: Specify Tomcat Server Parameters
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      owner: admin
+      variables:
+      - server-name
+      - tomcat-home
+      - tomcat-start-command
+      - tomcat-stop-command
+      - tomcat-status-command
+      - tomcat-status-exptected-output
+    - name: Configure Tomcat Server
+      type: deploy.CreateCI
+      owner: admin
+      variableMapping:
+        server: "${deploy-server}"
+      capabilities:
+      - remote
+      ciID: "Infrastructure/${host-identifier}/${server-name}"
+      ciType: tomcat.Server
+      jsonDescriptor: |-
+        {
+            "home":"${tomcat-home}",
+            "startCommand":"${tomcat-start-command}",
+            "stopCommand":"${tomcat-stop-command}",
+            "statusCommand":"${tomcat-status-command}",
+            "statusCommandExpectedOutput":"${tomcat-status-exptected-output}",
+            "startWaitTime":"0",
+            "stopWaitTime":"0",
+            "serverStartupTime":"0",
+            "serverShutdownTime":"0",
+            "tomcatRunningPort":""
+        }
+      addToEnvironment: true
+      envID: "Environments/${environment-name}"
+    - name: Check Tomcat Status
+      type: deploy.ControlTask
+      owner: admin
+      variableMapping:
+        server: "${deploy-server}"
+      capabilities:
+      - remote
+      ciId: "Infrastructure/${host-identifier}/${server-name}"
+      taskName: status
+      numberOfContinueRetrials: 0
+      pollingInterval: 10
+      numberOfPollingTrials: 0
+      displayStepLogs: true
+      connectionRetries: 10
+    - name: Specify Tomcat Virtual Host Name
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      owner: admin
+      variables:
+      - virtual-host-name
+    - name: Configure Tomcat VirtualHost
+      type: deploy.CreateCI
+      owner: admin
+      variableMapping:
+        server: "${deploy-server}"
+      capabilities:
+      - remote
+      ciID: "Infrastructure/${host-identifier}/${server-name}/${virtual-host-name}"
+      ciType: tomcat.VirtualHost
+      jsonDescriptor: "{}"
+      addToEnvironment: true
+      envID: "Environments/${environment-name}"
+  - phase: Setup Application
+    tasks:
+    - name: Specify Application Name
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      owner: admin
+      variables:
+      - application-name
+    - name: Setup Application
+      type: deploy.CreateCI
+      owner: admin
+      variableMapping:
+        server: "${deploy-server}"
+      capabilities:
+      - remote
+      ciID: "Applications/${application-name}"
+      ciType: udm.Application
+      jsonDescriptor: "{}"
+    - name: Specify Package Name
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      owner: admin
+      variables:
+      - package-name
+    - name: Create Deployment Package
+      type: deploy.CreateCI
+      owner: admin
+      variableMapping:
+        server: "${deploy-server}"
+      capabilities:
+      - remote
+      ciID: "Applications/${application-name}/1.0"
+      ciType: udm.DeploymentPackage
+      jsonDescriptor: "{}"
+    - name: Specify Tomcat Datasource
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      owner: admin
+      variables:
+      - datasource-name
+      - jndi-name
+      - datasource-context
+      - database-driver-class-name
+      - database url
+      - db-username
+      - db-password
+    - name: Create Sample Tomcat DataSourceSpec
+      type: deploy.CreateCI
+      owner: admin
+      variableMapping:
+        server: "${deploy-server}"
+      capabilities:
+      - remote
+      ciID: "Applications/${application-name}/${package-name}/${datasource-name}"
+      ciType: tomcat.DataSourceSpec
+      jsonDescriptor: |-
+        {
+            "context":"${datasource-context}",
+            "jndiName":"${jndi-name}",
+            "driverClassName":"${database-driver-class-name}",
+            "url":"${database url}",
+            "username":"${db-username}",
+            "password":"${db-password}"
+        }
+    - name: Add Managed Application
+      type: xlrelease.ScriptTask
+      owner: admin
+      script: |-
+        from com.xebialabs.xlrelease.api.v1.views import ManagedApplicationView
+        from com.xebialabs.xlrelease.api.v1.views import ConnectionServerView
+        from java.util import Date
+        from java.text import SimpleDateFormat
+        import datetime
+
+        parsedDate = datetime.datetime.now()
+
+        requestBody = ManagedApplicationView()
+        requestBody.applicationName = "${application-name}"
+        requestBody.managedBy = "Digital.ai Deploy"
+        requestBody.dateCreated = parsedDate
+        requestBody.environmentTag = "${environment-name}"
+        requestBody.applicationReference = "${application-name}"
+
+        connectionServer = ConnectionServerView('${deploy-server}', '', '', '')
+        requestBody.connectionServer = connectionServer
+
+        res = managedApplicationApi.addManagedApplication(requestBody)
+    color: '#3d6c9e'
+  tags:
+  - app-pipeline-templates
+  variables:
+  - type: xlrelease.StringVariable
+    key: environment-name
+    value: tomcat-env
+  - type: xlrelease.StringVariable
+    key: host-identifier
+    value: tomcat-host
+  - type: xlrelease.StringVariable
+    key: address
+    value: 1.2.3.4
+  - type: xlrelease.StringVariable
+    key: os
+    value: UNIX
+  - type: xlrelease.StringVariable
+    key: port
+    value: "22"
+  - type: xlrelease.StringVariable
+    key: ssh-privatekey
+    value: private-key-path
+  - type: xlrelease.StringVariable
+    key: ssh-username
+    value: ssh-username
+  - type: xlrelease.StringVariable
+    key: sudo-username
+    value: sudo-username
+  - type: xlrelease.StringVariable
+    key: application-name
+    value: tomcat-app
+  - type: xlrelease.StringVariable
+    key: package-name
+    value: "1.0"
+  - type: xlrelease.StringVariable
+    key: tomcat-home
+    value: tomcat-home
+  - type: xlrelease.StringVariable
+    key: tomcat-start-command
+    value: systemctl start tomcat
+  - type: xlrelease.StringVariable
+    key: tomcat-status-command
+    value: systemctl status tomcat
+  - type: xlrelease.StringVariable
+    key: tomcat-status-exptected-output
+    value: active (running)
+  - type: xlrelease.StringVariable
+    key: tomcat-stop-command
+    value: systemctl stop tomcat
+  - type: xlrelease.StringVariable
+    key: database url
+    value: database url
+  - type: xlrelease.StringVariable
+    key: database-driver-class-name
+    value: database-driver-class-name
+  - type: xlrelease.StringVariable
+    key: datasource-context
+    value: datasource-context
+  - type: xlrelease.StringVariable
+    key: db-password
+    value: db-password
+  - type: xlrelease.StringVariable
+    key: db-username
+    value: db-username
+  - type: xlrelease.StringVariable
+    key: jndi-name
+    value: jndi-name
+  - type: xlrelease.StringVariable
+    key: server-name
+    value: tomcat-server
+  - type: xlrelease.StringVariable
+    key: virtual-host-name
+    value: virtual-host
+  - type: xlrelease.StringVariable
+    key: datasource-name
+    value: sample-datasource
+  - type: xlrelease.ReferenceVariable
+    key: deploy-server
+    showOnReleaseStart: false
+    label: Deploy Server
+    referencedType: digitalai.DeployServer
+  riskProfile: Default risk profile
