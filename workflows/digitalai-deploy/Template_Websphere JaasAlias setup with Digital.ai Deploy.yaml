@@ -5,6 +5,7 @@ metadata:
   home: Digital.ai - Official/Workflows/Digital.ai Deploy
 spec:
 - template: Websphere JaasAlias setup with Digital.ai Deploy
+  kind: WORKFLOW
   description: "Easily create an application in Digital.ai Deploy that can be used\
     \ to create a JaasAlias in a remote Websphere Server, including its respective\
     \ environment and infrastructure setup."

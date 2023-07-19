@@ -5,6 +5,7 @@ metadata:
   home: Digital.ai - Official/Workflows/Digital.ai Deploy
 spec:
 - template: Tomcat DataSource Setup on SSH Host with Digital.ai Deploy
+  kind: WORKFLOW
   description: "Easily create an application in Digital.ai Deploy that can be used\
     \ to create a DataSource in a Remote Tomcat Server, including its respective environment\
     \ and infrastructure setup."

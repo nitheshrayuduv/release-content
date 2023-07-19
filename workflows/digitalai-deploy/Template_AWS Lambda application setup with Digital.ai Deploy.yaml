@@ -5,6 +5,7 @@ metadata:
   home: Digital.ai - Official/Workflows/Digital.ai Deploy
 spec:
 - template: AWS Lambda application setup with Digital.ai Deploy
+  kind: WORKFLOW
   description: "Easily create an application in Digital.ai Deploy that can be deployed\
     \ to AWS Lambda, including its respective environment and infrastructure setup."
   scheduledStartDate: 2023-03-23T09:00:00+05:30

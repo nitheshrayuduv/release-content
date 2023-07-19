@@ -5,6 +5,7 @@ metadata:
   home: Digital.ai - Official/Workflows/ArgoCD
 spec:
 - template: Delete Application in ArgoCD
+  kind: WORKFLOW
   scheduledStartDate: 2023-04-27T18:30:00+05:30
   dueDate: 2023-04-27T19:30:00+05:30
   phases:
@@ -50,3 +51,7 @@ spec:
     referencedType: argocd.APIServer
   scriptUsername: admin
   riskProfile: Default risk profile
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/png
+    file: !file "template-logo/argo-icon.png"

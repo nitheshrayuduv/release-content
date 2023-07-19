@@ -5,6 +5,7 @@ metadata:
   home: Digital.ai - Official/Workflows/ArgoCD
 spec:
 - template: Install ArgoCD
+  kind: WORKFLOW
   description: Install ArgoCD on Kubernetes cluster for deploying an Application
   scheduledStartDate: 2022-12-07T13:30:00+05:30
   dueDate: 2022-12-07T14:30:00+05:30
@@ -247,3 +248,7 @@ spec:
     showOnReleaseStart: false
   scriptUsername: admin
   riskProfile: Default risk profile
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/png
+    file: !file "template-logo/argo-icon.png"

@@ -5,6 +5,7 @@ metadata:
   home: Digital.ai - Official/Workflows/Digital.ai Deploy
 spec:
 - template: Setup ArgoCD application with initial deployment
+  kind: WORKFLOW
   description: "Create an application in ArgoCD that can be deployed to Kubernetes\
     \ cluster, with initial deployment"
   scheduledStartDate: 2022-12-13T13:30:00+05:30
