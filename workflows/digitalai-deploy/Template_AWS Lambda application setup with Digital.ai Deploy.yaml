@@ -243,3 +243,8 @@ spec:
   allowPasswordsInAllFields: true
   scriptUsername: admin
   riskProfile: Default risk profile
+  author: Digital.ai
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/png
+    file: !file "template-logo/xlr-xld-plugin.png"

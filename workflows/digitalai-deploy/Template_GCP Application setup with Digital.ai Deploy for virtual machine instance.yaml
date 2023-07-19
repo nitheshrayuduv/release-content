@@ -219,3 +219,8 @@ spec:
   - type: xlrelease.StringVariable
     key: environment-name
   riskProfile: Default risk profile
+  author: Digital.ai
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/png
+    file: !file "template-logo/xlr-xld-plugin.png"
