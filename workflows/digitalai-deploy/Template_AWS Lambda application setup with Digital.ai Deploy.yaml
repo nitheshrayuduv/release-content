@@ -244,6 +244,10 @@ spec:
   scriptUsername: admin
   riskProfile: Default risk profile
   author: Digital.ai
+  categories:
+  - Cloud & Container
+  - Serverless
+  - Application Life Cycle Management
   logo:
     type: xlrelease.TemplateLogo
     contentType: image/png

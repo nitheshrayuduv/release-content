@@ -220,6 +220,9 @@ spec:
     key: environment-name
   riskProfile: Default risk profile
   author: Digital.ai
+  categories:
+  - Cloud & Container
+  - Application Life Cycle Management
   logo:
     type: xlrelease.TemplateLogo
     contentType: image/png
