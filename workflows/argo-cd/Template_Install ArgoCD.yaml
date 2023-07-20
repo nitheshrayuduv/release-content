@@ -250,8 +250,8 @@ spec:
   riskProfile: Default risk profile
   author: Digital.ai
   categories:
-    - Infrastructure Service
-    - Application Life Cycle Management
+  - Infrastructure Service
+  - Application Life Cycle Management
   logo:
     type: xlrelease.TemplateLogo
     contentType: image/png

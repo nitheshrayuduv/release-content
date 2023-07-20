@@ -226,4 +226,4 @@ spec:
   logo:
     type: xlrelease.TemplateLogo
     contentType: image/png
-    file: !file "template-logo/xlr-xld-plugin.png"
+    file: !file "template-logo/argo-icon.png"
