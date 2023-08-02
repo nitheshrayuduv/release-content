@@ -3,7 +3,7 @@ apiVersion: xl-release/v1
 kind: Import
 spec:
   imports:
-  - Template_Delete Application in ArgoCD.yaml
-  - Template_Install Argo Rollouts.yaml
-  - Template_Install ArgoCD.yaml
-  - Template_Setup ArgoCD application with initial deployment.yaml
+  - Workflow_Delete Application in ArgoCD.yaml
+  - Workflow_Install Argo Rollouts.yaml
+  - Workflow_Install ArgoCD.yaml
+  - Workflow_Setup ArgoCD application with initial deployment.yaml

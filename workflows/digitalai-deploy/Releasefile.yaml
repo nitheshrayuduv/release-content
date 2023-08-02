@@ -3,9 +3,9 @@ apiVersion: xl-release/v1
 kind: Import
 spec:
   imports:
-  - Template_AWS Lambda application setup with Digital.ai Deploy.yaml
-  - Template_Azure Application setup with Digital.ai Deploy to create Azure resource
+  - Workflow_AWS Lambda application setup with Digital.ai Deploy.yaml
+  - Workflow_Azure Application setup with Digital.ai Deploy to create Azure resource
     groups.yaml
-  - Template_GCP Application setup with Digital.ai Deploy for virtual machine instance.yaml
-  - Template_Tomcat DataSource Setup on SSH Host with Digital.ai Deploy.yaml
-  - Template_Websphere JaasAlias setup with Digital.ai Deploy.yaml
+  - Workflow_GCP Application setup with Digital.ai Deploy for virtual machine instance.yaml
+  - Workflow_Tomcat DataSource Setup on SSH Host with Digital.ai Deploy.yaml
+  - Workflow_Websphere JaasAlias setup with Digital.ai Deploy.yaml

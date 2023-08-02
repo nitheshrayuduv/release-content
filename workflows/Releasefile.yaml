@@ -10,6 +10,7 @@ spec:
     gitConnection: Digital.ai Official Repository
     scmPath: workflows/argo-cd
     branch: main
+    exportTemplates: false
     exportPatterns: false
     exportVariables: false
     exportTriggers: false
@@ -23,6 +24,7 @@ spec:
     gitConnection: Digital.ai Official Repository
     scmPath: workflows/digitalai-deploy
     branch: main
+    exportTemplates: false
     exportPatterns: false
     exportVariables: false
     exportTriggers: false
