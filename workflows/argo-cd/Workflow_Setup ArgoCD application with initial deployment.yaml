@@ -149,9 +149,8 @@ spec:
 
         res = managedApplicationApi.addManagedApplication(requestBody)
     color: '#3d6c9e'
-  tags:
-  - stepper
-  - app-pipeline-templates
+  categories:
+  - Application onboarding
   variables:
   - type: xlrelease.MapStringStringVariable
     key: applicationExistsResponse

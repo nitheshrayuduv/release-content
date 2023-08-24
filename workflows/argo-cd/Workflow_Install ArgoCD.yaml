@@ -199,9 +199,6 @@ spec:
 
         configurationApi.addConfiguration(eventSource)
     color: '#3d6c9e'
-  tags:
-  - stepper
-  - app-pipeline-templates
   variables:
   - type: xlrelease.StringVariable
     key: namespace
@@ -250,6 +247,7 @@ spec:
   riskProfile: Default risk profile
   author: Digital.ai
   categories:
+  - Application onboarding
   - Infrastructure Service
   - Application Life Cycle Management
   logo:

@@ -181,8 +181,6 @@ spec:
 
         res = managedApplicationApi.addManagedApplication(requestBody)
     color: '#3d6c9e'
-  tags:
-  - app-pipeline-templates
   variables:
   - type: xlrelease.StringVariable
     key: environment-name
@@ -245,6 +243,7 @@ spec:
   riskProfile: Default risk profile
   author: Digital.ai
   categories:
+  - Application onboarding
   - Cloud & Container
   - Serverless
   - Application Life Cycle Management

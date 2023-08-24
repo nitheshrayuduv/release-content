@@ -143,9 +143,8 @@ spec:
       type: xlrelease.ScriptTask
       script: '# todo implement when argo rollouts plugin is done'
     color: '#3d6c9e'
-  tags:
-  - app-pipeline-templates
-  - stepper
+  categories:
+  - Application onboarding
   variables:
   - type: xlrelease.StringVariable
     key: namespace

@@ -219,8 +219,8 @@ spec:
 
         res = managedApplicationApi.addManagedApplication(requestBody)
     color: '#3d6c9e'
-  tags:
-  - app-pipeline-templates
+  categories:
+  - Application onboarding
   variables:
   - type: xlrelease.StringVariable
     key: environment-name
