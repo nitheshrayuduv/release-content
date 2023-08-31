@@ -204,5 +204,5 @@ spec:
   author: Digital.ai
   logo:
     type: xlrelease.TemplateLogo
-    contentType: image/png
-    file: !file "template-logo/xlr-xld-plugin.png"
+    contentType: image/svg+xml
+    file: !file "template-logo/xlr-xld-plugin.svg"
