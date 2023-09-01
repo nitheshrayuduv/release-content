@@ -325,7 +325,6 @@ spec:
     showOnReleaseStart: false
     label: Deploy Server
     referencedType: digitalai.DeployServer
-  riskProfile: Default risk profile
   author: Digital.ai
   logo:
     type: xlrelease.TemplateLogo

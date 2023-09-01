@@ -220,7 +220,6 @@ spec:
     label: Managed by
     value: Release
   scriptUsername: admin
-  riskProfile: Default risk profile
   author: Digital.ai
   logo:
     type: xlrelease.TemplateLogo

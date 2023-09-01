@@ -240,7 +240,6 @@ spec:
     showOnReleaseStart: false
   allowPasswordsInAllFields: true
   scriptUsername: admin
-  riskProfile: Default risk profile
   author: Digital.ai
   categories:
   - Application onboarding

@@ -287,7 +287,6 @@ spec:
   - type: xlrelease.StringVariable
     key: jaas-alias-name
     value: Sample JAAS Alias
-  riskProfile: Default risk profile
   author: Digital.ai
   logo:
     type: xlrelease.TemplateLogo

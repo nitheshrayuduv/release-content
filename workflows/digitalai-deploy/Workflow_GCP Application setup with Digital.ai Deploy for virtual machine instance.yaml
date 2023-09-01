@@ -216,7 +216,6 @@ spec:
     key: application-name
   - type: xlrelease.StringVariable
     key: environment-name
-  riskProfile: Default risk profile
   author: Digital.ai
   categories:
   - Application onboarding

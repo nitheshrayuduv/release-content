@@ -50,7 +50,6 @@ spec:
     description: ArgoCD Api Server connection details
     referencedType: argocd.APIServer
   scriptUsername: admin
-  riskProfile: Default risk profile
   author: Digital.ai
   logo:
     type: xlrelease.TemplateLogo
