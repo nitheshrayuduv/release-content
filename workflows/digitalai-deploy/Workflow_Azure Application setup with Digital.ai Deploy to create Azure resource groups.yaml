@@ -6,54 +6,66 @@ metadata:
 spec:
 - template: Azure Application setup with Digital.ai Deploy to create Azure resource
     groups
-  description: "Seamless create an application in Digital.ai Deploy that can create\
+  description: "Seamlessly create an application in Digital.ai Deploy that can create\
     \ Azure resource groups, including its respective environment and infrastructure\
     \ setup."
-  scheduledStartDate: 2023-03-23T09:00:00+05:30
-  dueDate: 2023-03-23T10:00:00+05:30
-  kind: WORKFLOW
+  scheduledStartDate: 2023-03-23T03:30:00Z
+  dueDate: 2023-03-23T04:30:00Z
   phases:
   - phase: Setup Infra and Env
     tasks:
+    - name: Specify Run As User
+      type: xlrelease.UserInputTask
+      description: Specify the Run As user. All automated tasks in the workflow will
+        be run as the specified user.
+      variables:
+      - runAsUsername
+      - runAsUserPassword
     - name: Specify Deploy Server Details
       type: xlrelease.UserInputTask
-      description: Select the Deploy Server Connection onto which the Azure application
-        has to be created. You can create a new connection if you have not created
-        one.
+      description: Select the Digital.ai Deploy Server Connection onto which the Azure
+        application has to be created. You can create a new connection if you have
+        not created one.
       owner: admin
       variables:
-      - deploy-server
+      - deployServer
     - name: Specify Environment Name
       type: xlrelease.UserInputTask
-      description: Please enter the required information below.
+      description: Specify the name of the environment CI to be created in the Digital.ai
+        Deploy Server.
       owner: admin
       variables:
-      - environment-name
+      - environmentName
     - name: Create Environment
       type: deploy.CreateCI
+      description: Creates an environment CI with the given name in the Digital.ai
+        Deploy Server.
       owner: admin
       variableMapping:
-        server: "${deploy-server}"
+        server: "${deployServer}"
       capabilities:
       - remote
-      ciID: "Environments/${environment-name}"
+      ciID: "Environments/${environmentName}"
       ciType: udm.Environment
       jsonDescriptor: "{}"
     - name: Specify Azure Connection Parameters
       type: xlrelease.UserInputTask
-      description: Please enter the required information below.
+      description: Specify the Azure connection details. The Azure Cloud CI in the
+        Digital.ai Deploy Server will be created with the specified details.
       owner: admin
       variables:
       - azurecloud-identifier
-      - subscription-id
-      - tenant-id
-      - client-id
-      - client-secret
+      - subscriptionId
+      - tenantId
+      - clientId
+      - clientSecret
     - name: Configure Azure Connection
       type: deploy.CreateCI
+      description: Creates an Azure Cloud CI in the Digital.ai Deploy Server with
+        the details specified in the previous step.
       owner: admin
       variableMapping:
-        server: "${deploy-server}"
+        server: "${deployServer}"
       capabilities:
       - remote
       ciID: "Infrastructure/${azurecloud-identifier}"
@@ -61,18 +73,30 @@ spec:
       jsonDescriptor: |-
         {
             "authMethod":"directory-application-and-service-principal",
-            "subscriptionId":"${subscription-id}",
-            "tenantId":"${tenant-id}",
-            "clientId":"${client-id}",
-            "clientKey":"${client-secret}"
+            "subscriptionId":"${subscriptionId}",
+            "tenantId":"${tenantId}",
+            "clientId":"${clientId}"
         }
       addToEnvironment: true
-      envID: "Environments/${environment-name}"
+      envID: "Environments/${environmentName}"
+    - name: Set Azure Credentials
+      type: deploy.UpdateCIPropertyWithSecretValue
+      description: Sets the secret information in the previously created Azure Cloud
+        CI in Digital.ai Deploy server.
+      variableMapping:
+        propertyValue: "${clientSecret}"
+        server: "${deployServer}"
+      capabilities:
+      - remote
+      ciID: "Infrastructure/${azurecloud-identifier}"
+      ciProperty: clientKey
     - name: Check Azure Connection
       type: deploy.ControlTask
+      description: Runs a Check Connection control task on the created Azure Cloud
+        CI in the Digital.ai Deploy server to validate the specified credentials.
       owner: admin
       variableMapping:
-        server: "${deploy-server}"
+        server: "${deployServer}"
       capabilities:
       - remote
       ciId: "Infrastructure/${azurecloud-identifier}"
@@ -87,59 +111,70 @@ spec:
     tasks:
     - name: Specify Application Name
       type: xlrelease.UserInputTask
-      description: Please enter the required information below.
+      description: Specify the name of the application to be created in the Digital.ai
+        Deploy server.
       owner: admin
       variables:
-      - application-name
+      - applicationName
     - name: Create Application
       type: deploy.CreateCI
+      description: Creates an application with the specified name in the Digital.ai
+        Deploy server.
       owner: admin
       variableMapping:
-        server: "${deploy-server}"
+        server: "${deployServer}"
       capabilities:
       - remote
-      ciID: "Applications/${application-name}"
+      ciID: "Applications/${applicationName}"
       ciType: udm.Application
       jsonDescriptor: "{}"
     - name: Specify Package Name
       type: xlrelease.UserInputTask
-      description: Please enter the required information below.
+      description: Specify a package name to be created within the application created
+        in Digital.ai Deploy server in the previous step.
       owner: admin
       variables:
-      - package-name
+      - packageName
     - name: Create Deployment Package
       type: deploy.CreateCI
+      description: Creates a deployment package with the specfied name in the application
+        created in Digital.ai Deploy server.
       owner: admin
       variableMapping:
-        server: "${deploy-server}"
+        server: "${deployServer}"
       capabilities:
       - remote
-      ciID: "Applications/${application-name}/${package-name}"
+      ciID: "Applications/${applicationName}/${packageName}"
       ciType: udm.DeploymentPackage
       jsonDescriptor: "{}"
     - name: Specify Resource Group Parameters
       type: xlrelease.UserInputTask
-      description: Please enter the required information below.
+      description: Specify the resource group information which will be used to create
+        the application package in Digital.ai Deploy server.
       owner: admin
       variables:
-      - resourcegroup-name
-      - resourcegroup-location
+      - resourcegroupName
+      - resourcegroupLocation
     - name: Create Sample Resource Group
       type: deploy.CreateCI
+      description: Creates the Azure Resource Group CI in the Digital.ai Deploy server
+        with the details specified in the previous step.
       owner: admin
       variableMapping:
-        server: "${deploy-server}"
+        server: "${deployServer}"
       capabilities:
       - remote
-      ciID: "Applications/${application-name}/${package-name}/sample-resource-group"
+      ciID: "Applications/${applicationName}/${packageName}/sample-resource-group"
       ciType: azure.ResourceGroupSpec
       jsonDescriptor: |-
         {
-            "location":"${resourcegroup-location}",
-            "resourceGroupName":"${resourcegroup-name}"
+            "location":"${resourcegroupLocation}",
+            "resourceGroupName":"${resourcegroupName}"
         }
     - name: Add Managed Application
       type: xlrelease.ScriptTask
+      description: Adds the created Azure Resource Group application to the Digital.ai
+        Release managed application list.
       owner: admin
       script: |-
         from com.xebialabs.xlrelease.api.v1.views import ManagedApplicationView
@@ -151,55 +186,81 @@ spec:
         parsedDate = datetime.datetime.now()
 
         requestBody = ManagedApplicationView()
-        requestBody.applicationName = "${application-name}"
+        requestBody.applicationName = "${applicationName}"
         requestBody.managedBy = "Digital.ai Deploy"
         requestBody.dateCreated = parsedDate
-        requestBody.environmentTag = "${environment-name}"
-        requestBody.applicationReference = "${application-name}"
+        requestBody.environmentTag = "${environmentName}"
+        requestBody.applicationReference = "${applicationName}"
 
-        connectionServer = ConnectionServerView('${deploy-server}', '', '', '')
+        connectionServer = ConnectionServerView('${deployServer}', '', '', '')
         requestBody.connectionServer = connectionServer
 
         res = managedApplicationApi.addManagedApplication(requestBody)
     color: '#3d6c9e'
+  kind: WORKFLOW
   categories:
   - Application onboarding
   variables:
   - type: xlrelease.StringVariable
-    key: environment-name
+    key: environmentName
+    description: Name of the environment CI in Deploy
     value: azure-env
   - type: xlrelease.StringVariable
-    key: application-name
+    key: applicationName
+    description: Name of the application CI in Deploy
     value: azure-app
   - type: xlrelease.StringVariable
-    key: package-name
+    key: packageName
+    description: Name of the application package in Deploy
     value: "1.0"
   - type: xlrelease.StringVariable
     key: azurecloud-identifier
+    description: Name of the Azure Cloud CI
     value: azure-cloud
   - type: xlrelease.StringVariable
-    key: client-id
+    key: clientId
+    description: Azure Client Id
     value: client-id
+  - type: xlrelease.PasswordStringVariable
+    key: clientSecret
+    showOnReleaseStart: false
+    description: Azure Client Secret
   - type: xlrelease.StringVariable
-    key: client-secret
-    value: client-secret
-  - type: xlrelease.StringVariable
-    key: subscription-id
+    key: subscriptionId
+    showOnReleaseStart: false
+    description: Azure Subscription Id
     value: subscription-id
   - type: xlrelease.StringVariable
-    key: tenant-id
+    key: tenantId
+    description: Azure Tenant Id
     value: tenant-id
   - type: xlrelease.StringVariable
-    key: resourcegroup-location
+    key: resourcegroupLocation
+    description: Location of the Resource Group in Azure
     value: East US
   - type: xlrelease.StringVariable
-    key: resourcegroup-name
+    key: resourcegroupName
+    description: Name of the Resource Group in Azure
     value: resourcegroup-name
   - type: xlrelease.ReferenceVariable
-    key: deploy-server
+    key: deployServer
     showOnReleaseStart: false
     label: Deploy Server
+    description: Connection to the Deploy Server
     referencedType: digitalai.DeployServer
+  - type: xlrelease.StringVariable
+    key: runAsUsername
+    showOnReleaseStart: false
+    label: Run automated tasks as user
+    description: Run all automated tasks in this workflow as user
+  - type: xlrelease.PasswordStringVariable
+    key: runAsUserPassword
+    showOnReleaseStart: false
+    label: Password
+    description: Password for automated tasks user
+  scriptUsername: "${runAsUsername}"
+  variableMapping:
+    scriptUserPassword: "${runAsUserPassword}"
   author: Digital.ai
   logo:
     type: xlrelease.TemplateLogo
