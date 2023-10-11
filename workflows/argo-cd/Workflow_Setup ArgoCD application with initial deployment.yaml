@@ -12,6 +12,19 @@ spec:
   phases:
   - phase: Check if application exists
     tasks:
+    - name: Check if remote runner exists
+      type: xlrelease.ScriptTask
+      script: |-
+        def check_runners(runners):
+          for runner in runners:
+            if runner["enabled"] and "remote" in runner["capabilities"]:
+              return True
+          return False
+        
+        runners = configurationApi.searchByTypeAndTitle("xlrelease.JobRunner", "")
+        
+        if not check_runners(runners):
+          raise Exception("There is no job runner with 'remote' capability enabled")
     - name: Specify RunAs user
       type: xlrelease.UserInputTask
       description: Specify the Run as user credentials which will be used to run the
@@ -39,7 +52,7 @@ spec:
         However, if the application already exists, the task will fail, and the workflow will be aborted. This is to prevent creating duplicate applications and ensure the proper functioning of the Argo CD Server.
       variableMapping:
         commandResponse: "${applicationExistsResponse}"
-        argoServer: "${argoCDApiServer}"
+        server: "${argoCDApiServer}"
       capabilities:
       - remote
       gitRepo: "${gitRepo}"
@@ -103,12 +116,75 @@ spec:
       - projectName
       - environmentTag
       - managedBy
+      - repoAccess
+      - autoSync
+    - name: Repository authentication input
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      owner: "${release.owner}"
+      precondition: |-
+        import json
+        
+        if releaseVariables["repoAccess"] == "private":
+          result = True
+        else:
+          result = False
+      variables:
+        - repoUsername
+        - repoPassword
+        - repoName
+        - enableLfs
+        - enableOCI
+        - gitEnterpriseURL
+        - gitAppID
+        - gitAppInstallationID
+        - gitAppPrivateKey
+        - inheritedCreds
+        - insecure
+        - insecureIgnoreHostKey
+        - project
+        - proxy
+        - sshPrivateKey
+        - tlsData
+        - tlsKey
+        - name: Create repository configuration
+          type: argocd.CreateRepository
+          precondition: |-
+            import json
+            
+            if releaseVariables["repoAccess"] == "private":
+              result = True
+            else:
+              result = False
+          variableMapping:
+            enableLfs: "${enableLfs}"
+            server: "${argoCDApiServer}"
+            password: "${repoPassword}"
+            insecure: "${insecure}"
+            insecureIgnoreHostKey: "${insecureIgnoreHostKey}"
+            inheritedCreds: "${inheritedCreds}"
+            enableOCI: "${enableOCI}"
+          capabilities:
+            - remote
+          repo: "${gitRepo}"
+          username: "${repoUsername}"
+          repoName: "${repoName}"
+          githubAppEnterpriseBaseUrl: "${gitEnterpriseURL}"
+          githubAppID: "${gitAppID}"
+          githubAppInstallationID: "${gitAppInstallationID}"
+          githubAppPrivateKey: "${gitAppPrivateKey}"
+          project: "${project}"
+          proxy: "${proxy}"
+          sshPrivateKey: "${sshPrivateKey}"
+          tlsClientCertData: "${tlsData}"
+          tlsClientCertKey: "${tlsKey}"
     - name: Create ArgoCD application
       type: argocd.CreateApplication
       description: "Deploys ArgoCD application with given information about application\
         \ name, project, git repo, path and branch."
       variableMapping:
-        argoServer: "${argoCDApiServer}"
+        autoSync: "${autoSync}"
+        server: "${argoCDApiServer}"
       capabilities:
       - remote
       appName: "${applicationName}"
@@ -120,14 +196,101 @@ spec:
     color: '#3d6c9e'
   - phase: Get application status
     tasks:
+    - name: Sync application
+      type: argocd.SyncApplication
+      precondition: |-
+        import json
+        
+        if releaseVariables["autoSync"] == False:
+          result = True
+        else:
+          result = False
+      variableMapping:
+        server: "${argoCDApiServer}"
+      capabilities:
+        - remote
+      applicationName: "${applicationName}"
     - name: Get application status
       type: argocd.CheckApplicationStatus
       description: Checks if application is successfully deployed.
       variableMapping:
-        argoServer: "${argoCDApiServer}"
+        server: "${argoCDApiServer}"
       capabilities:
       - remote
       applicationName: "${applicationName}"
+    color: '#3d6c9e'
+  - phase: Create Managed Application
+    tasks:
+    - name: Set Delete Workflow title and folderPath
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      variables:
+        - deleteWorkflowTitle
+        - deleteWorkflowFolderPath
+    - name: Fetch delete workflow
+      type: xlrelease.ScriptTask
+      script: |-
+        from com.xebialabs.xlrelease.api.v1.filter import WorkflowFilters
+        
+        folderId = ""
+        folderPath = "${deleteWorkflowFolderPath}"
+        if folderPath:
+          folderId = folderApi.find(folderPath, 1)
+          if folder:
+            folderId = folder.id
+          else:
+            raise Exception('Folder not found by path')
+        
+        if not folderId:
+          folderId = release.originTemplateId.split('/Release')[0]
+        
+        filters = WorkflowFilters()
+        filters.searchInput = "${deleteWorkflowTitle}"
+        filters.folderId = folderId
+        result = WorkflowApi.searchWorkflows(filters, 0, 100)
+        
+        workflows = result.content
+        if result.numberOfElements == 1:
+          releaseVariables['deleteWorkflowId'] = workflows[0].id
+        elif result.numberOfElements > 1:
+          raise Exception('Found more than one workflow, please specify parameters in previous step and retry')
+        else:
+          raise Exception('No delete workflow found, please specify parameters in previous step and retry')
+    - name: Set Update Workflow title and folderPath
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      variables:
+        - updateWorkflowTitle
+        - updateWorkflowFolderPath
+    - name: Fetch update workflow
+      type: xlrelease.ScriptTask
+      script: |-
+        from com.xebialabs.xlrelease.api.v1.filter import WorkflowFilters
+        
+        folderId = ""
+        folderPath = "${updateWorkflowFolderPath}"
+        if folderPath:
+          folderId = folderApi.find(folderPath, 1)
+          if folder:
+            folderId = folder.id
+          else:
+            raise Exception('Folder not found by path')
+        
+        if not folderId:
+          folderId = release.originTemplateId.split('/Release')[0]
+        
+        filters = WorkflowFilters()
+        filters.searchInput = "${updateWorkflowTitle}"
+        filters.folderId = folderId
+        result = WorkflowApi.searchWorkflows(filters, 0, 100)
+        
+        workflows = result.content
+        if result.numberOfElements == 1:
+          releaseVariables['updateWorkflowId'] = workflows[0].id
+        elif result.numberOfElements > 1:
+          raise Exception('Found more than one workflow, please specify parameters in previous step and retry')
+        else:
+          raise Exception('No update workflow found, please specify parameters in previous step and retry')
     - name: Create managed application
       type: xlrelease.ScriptTask
       description: Adds the created ArgoCD application to the Digital.ai Release managed
@@ -154,7 +317,10 @@ spec:
         requestBody.environmentTag = "${environmentTag}"
         requestBody.applicationReference = "${clusterUrl}"
         requestBody.connectionServer = connectionServer
-
+        requestBody.workflowId = release.originTemplateId
+        requestBody.deleteWorkflowId = "${deleteWorkflowId}"
+        requestBody.updateWorkflowId = "${updateWorkflowId}"
+        
         res = managedApplicationApi.addManagedApplication(requestBody)
     color: '#3d6c9e'
   kind: WORKFLOW
@@ -165,10 +331,14 @@ spec:
     key: applicationExistsResponse
     requiresValue: false
     showOnReleaseStart: false
+    value:
+      exists: "false"
   - type: xlrelease.MapStringStringVariable
     key: namespaceExistsResponse
     requiresValue: false
     showOnReleaseStart: false
+    value:
+      exists: "false"
   - type: xlrelease.StringVariable
     key: gitRepo
     showOnReleaseStart: false
@@ -238,6 +408,171 @@ spec:
     showOnReleaseStart: false
     label: Password
     description: Password for automated tasks user
+  - type: xlrelease.StringVariable
+    key: repoAccess
+    showOnReleaseStart: false
+    label: Repo access rights
+    valueProvider:
+      type: xlrelease.ListOfStringValueProviderConfiguration
+      values:
+        - public
+        - private
+  - type: xlrelease.StringVariable
+    key: repoUsername
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Repo username
+    description: This is required only if repository is private
+  - type: xlrelease.PasswordStringVariable
+    key: repoPassword
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Repo password
+    description: This is required if private repository is password protected
+  - type: xlrelease.StringVariable
+    key: repoType
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Repo type
+    description: Repo type
+  - type: xlrelease.BooleanVariable
+    key: autoSync
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Auto Sync
+    description: Auto Sync application
+  - type: xlrelease.StringVariable
+    key: repoName
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Repo Name
+    description: Repo Name
+  - type: xlrelease.BooleanVariable
+    key: enableLfs
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Enable Lfs
+  - type: xlrelease.BooleanVariable
+    key: enableOCI
+    showOnReleaseStart: false
+    label: Enable O C I
+  - type: xlrelease.StringVariable
+    key: gitEnterpriseURL
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Github App Enterprise Base Url
+    description: Github App Enterprise Base Url
+  - type: xlrelease.StringVariable
+    key: gitAppID
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Github App I D
+    description: Github App I D
+  - type: xlrelease.StringVariable
+    key: gitAppInstallationID
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Github App Installation I D
+    description: Github App Installation I D
+  - type: xlrelease.StringVariable
+    key: gitAppPrivateKey
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Github App Private Key
+    description: Github App Private Key
+  - type: xlrelease.BooleanVariable
+    key: inheritedCreds
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Inherited Creds
+    description: Inherited Creds
+  - type: xlrelease.BooleanVariable
+    key: insecure
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Insecure
+    description: Insecure
+  - type: xlrelease.BooleanVariable
+    key: insecureIgnoreHostKey
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Insecure Ignore Host Key
+    description: Insecure Ignore Host Key
+  - type: xlrelease.StringVariable
+    key: project
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Project
+    description: Project
+  - type: xlrelease.StringVariable
+    key: proxy
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Proxy
+    description: Proxy
+  - type: xlrelease.StringVariable
+    key: sshPrivateKey
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Ssh Private Key
+    description: Ssh Private Key
+    multiline: true
+  - type: xlrelease.StringVariable
+    key: tlsData
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Tls Client Cert Data
+    description: Tls Client Cert Data
+    multiline: true
+  - type: xlrelease.StringVariable
+    key: tlsKey
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Tls Client Cert Key
+    description: Tls Client Cert Key
+    multiline: true
+  - type: xlrelease.StringVariable
+    key: deleteWorkflowId
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Delete Workflow CI ID
+    description: CI ID of the the Delete Workflow to be triggered as delete action
+      from managed applications (this is set by template)
+  - type: xlrelease.StringVariable
+    key: updateWorkflowId
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Update Workflow CI ID
+    description: CI ID of the the Update Workflow to be triggered as edit action from
+      managed applicationsScript (this is set by template)
+  - type: xlrelease.StringVariable
+    key: deleteWorkflowFolderPath
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Folder path of the Delete Workflow
+    description: Location of the Delete Workflow for this application (if empty script
+      will use folder of the workflow template)
+    value: Digital.ai - Official/Workflows/ArgoCD
+  - type: xlrelease.StringVariable
+    key: deleteWorkflowTitle
+    showOnReleaseStart: false
+    label: Title of the Delete Workflow
+    description: Title of the Delete Workflow for this application
+    value: Delete Application in ArgoCD
+  - type: xlrelease.StringVariable
+    key: updateWorkflowFolderPath
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Folder path of the Update Workflow
+    description: Location of the Update Workflow for this application (if empty script
+      will use folder of the workflow template)
+    value: Digital.ai - Official/Workflows/ArgoCD
+  - type: xlrelease.StringVariable
+    key: updateWorkflowTitle
+    showOnReleaseStart: false
+    label: Title of the Update Workflow
+    description: Title of the Update Workflow for this application
+    value: Update Application in ArgoCD
   scriptUsername: "${runAsUsername}"
   variableMapping:
     scriptUserPassword: "${runAsUserPassword}"

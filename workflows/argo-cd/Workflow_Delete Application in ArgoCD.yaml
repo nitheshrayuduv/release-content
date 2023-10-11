@@ -15,19 +15,18 @@ spec:
       type: xlrelease.UserInputTask
       description: Please enter the required information below.
       variables:
-      - projectDetails
       - argoCDApiServer
       - Application_name
     - name: Delete Application in ArgoCD
       type: argocd.RemoveApplication
       variableMapping:
-        argoServer: "${argoCDApiServer}"
+        server: "${argoCDApiServer}"
       capabilities:
-      - remote
+        - remote
       applicationName: "${Application_name}"
     - name: Delete Application in Release
-      type: xlrelease.UserInputTask
-      description: Please enter the required information below.
+      type: xlrelease.ScriptTask
+      script: "managedApplicationApi.deleteManagedApplication(\"${managedApplicationId}\")"
     color: '#3d6c9e'
   categories:
   - Application onboarding
@@ -37,12 +36,6 @@ spec:
     showOnReleaseStart: false
     label: Application Name
     description: Application name to delete from ArgoCD
-  - type: xlrelease.StringVariable
-    key: projectDetails
-    showOnReleaseStart: false
-    label: Project Details
-    description: Name of the project in ArgoCD where the Application is mapped to
-    value: default
   - type: xlrelease.ReferenceVariable
     key: argoCDApiServer
     showOnReleaseStart: false
