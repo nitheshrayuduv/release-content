@@ -147,37 +147,37 @@ spec:
         - sshPrivateKey
         - tlsData
         - tlsKey
-        - name: Create repository configuration
-          type: argocd.CreateRepository
-          precondition: |-
-            import json
-            
-            if releaseVariables["repoAccess"] == "private":
-              result = True
-            else:
-              result = False
-          variableMapping:
-            enableLfs: "${enableLfs}"
-            server: "${argoCDApiServer}"
-            password: "${repoPassword}"
-            insecure: "${insecure}"
-            insecureIgnoreHostKey: "${insecureIgnoreHostKey}"
-            inheritedCreds: "${inheritedCreds}"
-            enableOCI: "${enableOCI}"
-          capabilities:
-            - remote
-          repo: "${gitRepo}"
-          username: "${repoUsername}"
-          repoName: "${repoName}"
-          githubAppEnterpriseBaseUrl: "${gitEnterpriseURL}"
-          githubAppID: "${gitAppID}"
-          githubAppInstallationID: "${gitAppInstallationID}"
-          githubAppPrivateKey: "${gitAppPrivateKey}"
-          project: "${project}"
-          proxy: "${proxy}"
-          sshPrivateKey: "${sshPrivateKey}"
-          tlsClientCertData: "${tlsData}"
-          tlsClientCertKey: "${tlsKey}"
+    - name: Create repository configuration
+      type: argocd.CreateRepository
+      precondition: |-
+        import json
+        
+        if releaseVariables["repoAccess"] == "private":
+          result = True
+        else:
+          result = False
+      variableMapping:
+        enableLfs: "${enableLfs}"
+        server: "${argoCDApiServer}"
+        password: "${repoPassword}"
+        insecure: "${insecure}"
+        insecureIgnoreHostKey: "${insecureIgnoreHostKey}"
+        inheritedCreds: "${inheritedCreds}"
+        enableOCI: "${enableOCI}"
+      capabilities:
+        - remote
+      repo: "${gitRepo}"
+      username: "${repoUsername}"
+      repoName: "${repoName}"
+      githubAppEnterpriseBaseUrl: "${gitEnterpriseURL}"
+      githubAppID: "${gitAppID}"
+      githubAppInstallationID: "${gitAppInstallationID}"
+      githubAppPrivateKey: "${gitAppPrivateKey}"
+      project: "${project}"
+      proxy: "${proxy}"
+      sshPrivateKey: "${sshPrivateKey}"
+      tlsClientCertData: "${tlsData}"
+      tlsClientCertKey: "${tlsKey}"
     - name: Create ArgoCD application
       type: argocd.CreateApplication
       description: "Deploys ArgoCD application with given information about application\
