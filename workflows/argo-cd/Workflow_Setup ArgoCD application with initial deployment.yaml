@@ -12,6 +12,13 @@ spec:
   phases:
   - phase: Check if application exists
     tasks:
+    - name: Specify RunAs user
+      type: xlrelease.UserInputTask
+      description: Specify the Run as user credentials which will be used to run the
+        workflow. All automated tasks will be run as this user.
+      variables:
+        - runAsUsername
+        - runAsUserPassword
     - name: Check if remote runner exists
       type: xlrelease.ScriptTask
       script: |-
@@ -25,13 +32,6 @@ spec:
         
         if not check_runners(runners):
           raise Exception("There is no job runner with 'remote' capability enabled")
-    - name: Specify RunAs user
-      type: xlrelease.UserInputTask
-      description: Specify the Run as user credentials which will be used to run the
-        workflow. All automated tasks will be run as this user.
-      variables:
-      - runAsUsername
-      - runAsUserPassword
     - name: Application input
       type: xlrelease.UserInputTask
       description: Input for application information together with the ArgoCD server
@@ -235,7 +235,7 @@ spec:
         folderId = ""
         folderPath = "${deleteWorkflowFolderPath}"
         if folderPath:
-          folderId = folderApi.find(folderPath, 1)
+          folder = folderApi.find(folderPath, 1)
           if folder:
             folderId = folder.id
           else:
@@ -270,7 +270,7 @@ spec:
         folderId = ""
         folderPath = "${updateWorkflowFolderPath}"
         if folderPath:
-          folderId = folderApi.find(folderPath, 1)
+          folder = folderApi.find(folderPath, 1)
           if folder:
             folderId = folder.id
           else:
@@ -366,15 +366,18 @@ spec:
     showOnReleaseStart: false
     label: Namespace
     value: default
+    description: The Kubernetes namespace where application wll be deployed
   - type: xlrelease.StringVariable
     key: applicationName
     showOnReleaseStart: false
     label: Application name
+    description: New application name in ArgoCD
   - type: xlrelease.StringVariable
     key: projectName
     showOnReleaseStart: false
     label: Project name
     value: default
+    description: ArgoCD project name
   - type: xlrelease.ReferenceVariable
     key: kubernetesApiServer
     showOnReleaseStart: false
@@ -398,6 +401,7 @@ spec:
     showOnReleaseStart: false
     label: Managed by
     value: Release
+    description: Marks how the application is managed, use Release value for apps managed from Release
   - type: xlrelease.StringVariable
     key: runAsUsername
     showOnReleaseStart: false
@@ -452,10 +456,12 @@ spec:
     requiresValue: false
     showOnReleaseStart: false
     label: Enable Lfs
+    description: Enable Git Large File Storage
   - type: xlrelease.BooleanVariable
     key: enableOCI
     showOnReleaseStart: false
     label: Enable O C I
+    description: Enable Oracle Cloud Infrastructure Repository
   - type: xlrelease.StringVariable
     key: gitEnterpriseURL
     requiresValue: false
@@ -466,8 +472,8 @@ spec:
     key: gitAppID
     requiresValue: false
     showOnReleaseStart: false
-    label: Github App I D
-    description: Github App I D
+    label: Github App ID
+    description: Github App ID
   - type: xlrelease.StringVariable
     key: gitAppInstallationID
     requiresValue: false

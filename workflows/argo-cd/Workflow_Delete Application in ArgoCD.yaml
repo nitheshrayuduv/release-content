@@ -11,6 +11,13 @@ spec:
   phases:
   - phase: Delete Application in ArgoCD
     tasks:
+    - name: Specify RunAs user
+      type: xlrelease.UserInputTask
+      description: Specify the Run as user credentials which will be used to run the
+        workflow. All automated tasks will be run as this user.
+      variables:
+        - runAsUsername
+        - runAsUserPassword
     - name: Application Details
       type: xlrelease.UserInputTask
       description: Please enter the required information below.
@@ -32,6 +39,16 @@ spec:
   - Application onboarding
   variables:
   - type: xlrelease.StringVariable
+    key: runAsUsername
+    showOnReleaseStart: false
+    label: Run automated tasks as user
+    description: Run all automated tasks in this workflow as user
+  - type: xlrelease.PasswordStringVariable
+    key: runAsUserPassword
+    showOnReleaseStart: false
+    label: Password
+    description: Password for automated tasks user
+  - type: xlrelease.StringVariable
     key: Application_name
     showOnReleaseStart: false
     label: Application Name
@@ -42,7 +59,14 @@ spec:
     label: ArgoCD API server
     description: ArgoCD Api Server connection details
     referencedType: argocd.APIServer
-  scriptUsername: admin
+  - type: xlrelease.StringVariable
+    key: managedApplicationId
+    showOnReleaseStart: false
+    label: Managed Application ID
+    description: Managed Application ID from Release
+  scriptUsername: "${runAsUsername}"
+  variableMapping:
+    scriptUserPassword: "${runAsUserPassword}"
   author: Digital.ai
   logo:
     type: xlrelease.TemplateLogo

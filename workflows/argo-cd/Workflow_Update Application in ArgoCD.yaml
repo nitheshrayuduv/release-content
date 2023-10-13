@@ -11,6 +11,13 @@ spec:
   phases:
   - phase: Application input
     tasks:
+    - name: Specify RunAs user
+      type: xlrelease.UserInputTask
+      description: Specify the Run as user credentials which will be used to run the
+        workflow. All automated tasks will be run as this user.
+      variables:
+        - runAsUsername
+        - runAsUserPassword
     - name: Check if remote runner exists
       type: xlrelease.ScriptTask
       script: |-
@@ -24,13 +31,6 @@ spec:
         
         if not check_runners(runners):
           raise Exception("There is no job runner with 'remote' capability enabled")
-    - name: Specify RunAs user
-      type: xlrelease.UserInputTask
-      description: Specify the Run as user credentials which will be used to run the
-        workflow. All automated tasks will be run as this user.
-      variables:
-      - runAsUsername
-      - runAsUserPassword
     - name: General information input
       type: xlrelease.UserInputTask
       description: "Input for ArgoCD API Server, Cluster where the application will\
@@ -42,6 +42,8 @@ spec:
         - clusterUrl
         - applicationName
         - projectName
+        - environmentTag
+        - repoAccess
     - name: Git repository input
       type: xlrelease.UserInputTask
       description: "Git input fields. You can change the repository, path and branch."
@@ -74,13 +76,6 @@ spec:
 
         If you do not provide a namespace, the task will use the default value. Please ensure that the provided namespace is valid and appropriate for your application
       owner: "${release.owner}"
-      precondition: |-
-        import json
-
-        if releaseVariables["applicationExistsResponse"]["exists"] == "true":
-          raise Exception("Application app already exists!")
-
-        result = True
       variables:
       - kubernetesApiServer
       - namespace
@@ -109,39 +104,6 @@ spec:
       capabilities:
       - remote
       namespace: "${namespace}"
-    color: '#3d6c9e'
-  - phase: Check if namespace exists
-    tasks:
-      - name: Namespace input
-        type: xlrelease.UserInputTask
-        description: Input for Kubernetes API server and namespace
-        owner: "${release.owner}"
-        variables:
-          - kubernetesApiServer
-          - namespace
-      - name: Check if namespace exists
-        type: kubernetes.ExistsNamespace
-        description: "Checks if '${namespace}' namespace already exists."
-        variableMapping:
-          server: "${kubernetesApiServer}"
-          commandResponse: "${namespaceExistsResponse}"
-        capabilities:
-          - remote
-        namespace: "${namespace}"
-    color: '#3d6c9e'
-  - phase: Create namespace
-    tasks:
-      - name: Create namespace if it doesn't exist
-        type: kubernetes.CreateNamespace
-        precondition: |-
-          import json
-          
-          result = (releaseVariables["namespaceExistsResponse"]["exists"] != "true")
-        variableMapping:
-          server: "${kubernetesApiServer}"
-        capabilities:
-          - remote
-        namespace: "${namespace}"
     color: '#3d6c9e'
   - phase: Update ArgoCD application
     tasks:
@@ -216,7 +178,7 @@ spec:
           folderId = ""
           folderPath = "${deleteWorkflowFolderPath}"
           if folderPath:
-            folderId = folderApi.find(folderPath, 1)
+            folder = folderApi.find(folderPath, 1)
             if folder:
               folderId = folder.id
             else:
@@ -253,7 +215,7 @@ spec:
           folderId = ""
           folderPath = "${updateWorkflowFolderPath}"
           if folderPath:
-            folderId = folderApi.find(folderPath, 1)
+            folder = folderApi.find(folderPath, 1)
             if folder:
               folderId = folder.id
             else:
@@ -349,7 +311,7 @@ spec:
     key: applicationName
     showOnReleaseStart: false
     label: Application name
-    description: Existing application name on ArgoCD. Cannot be updated.
+    description: Existing application name in ArgoCD. Cannot be updated.
   - type: xlrelease.ReferenceVariable
     key: kubernetesApiServer
     showOnReleaseStart: false
@@ -414,6 +376,7 @@ spec:
         - background
         - orphan
     value: foreground
+    label: Prune Propagation Policy
   - type: xlrelease.BooleanVariable
     key: replace
     requiresValue: false
