@@ -422,7 +422,7 @@ spec:
     label: Folder path of the Delete Workflow
     description: Location of the Delete Workflow for this application (if empty script
       will use folder of the workflow template)
-    value: Digital.ai - Official/Workflows
+    value: Digital.ai - Official/Workflows/ArgoCD
   - type: xlrelease.StringVariable
     key: deleteWorkflowTitle
     requiresValue: false
@@ -437,7 +437,7 @@ spec:
     label: Folder path of the Update Workflow
     description: Location of the Update Workflow for this application (if empty script
       will use folder of the workflow template)
-    value: Digital.ai - Official/Workflows
+    value: Digital.ai - Official/Workflows/ArgoCD
   - type: xlrelease.StringVariable
     key: updateWorkflowTitle
     requiresValue: false
