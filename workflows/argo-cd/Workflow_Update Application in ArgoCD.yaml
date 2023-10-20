@@ -42,8 +42,6 @@ spec:
         - clusterUrl
         - applicationName
         - projectName
-        - environmentTag
-        - repoAccess
     - name: Git repository input
       type: xlrelease.UserInputTask
       description: "Git input fields. You can change the repository, path and branch."
@@ -429,7 +427,7 @@ spec:
     showOnReleaseStart: false
     label: Title of the Delete Workflow
     description: Title of the Delete Workflow for this application
-    value: ArgoCD application delete
+    value: Delete Application in ArgoCD
   - type: xlrelease.StringVariable
     key: updateWorkflowFolderPath
     requiresValue: false
@@ -444,7 +442,7 @@ spec:
     showOnReleaseStart: false
     label: Title of the Update Workflow
     description: Title of the Update Workflow for this application
-    value: ArgoCD application update
+    value: Update Application in ArgoCD
   - type: xlrelease.StringVariable
     key: runAsUsername
     showOnReleaseStart: false
