@@ -178,13 +178,33 @@ spec:
       sshPrivateKey: "${sshPrivateKey}"
       tlsClientCertData: "${tlsData}"
       tlsClientCertKey: "${tlsKey}"
+    - name: ArgoCD application configuration input
+      type: xlrelease.UserInputTask
+      description: Labels & sync policies.
+      owner: "${release.owner}"
+      variables:
+        - prune
+        - selfHeal
+        - skipSchemaValidation
+        - pruneLast
+        - autoCreateNamespace
+        - applyOutOfSyncOnly
+        - prunePropagationPolicy
+        - replace
     - name: Create ArgoCD application
       type: argocd.CreateApplication
       description: "Deploys ArgoCD application with given information about application\
         \ name, project, git repo, path and branch."
       variableMapping:
-        autoSync: "${autoSync}"
+        skipValidation: "${skipSchemaValidation}"
         server: "${argoCDApiServer}"
+        replace: "${replace}"
+        autoSync: "${autoSync}"
+        autoCreateNamespace: "${autoCreateNamespace}"
+        pruneLast: "${pruneLast}"
+        pruneResources: "${prune}"
+        selfHeal: "${selfHeal}"
+        applyOutOfSyncOnly: "${applyOutOfSyncOnly}"
       capabilities:
       - remote
       appName: "${applicationName}"
@@ -537,6 +557,58 @@ spec:
     label: Tls Client Cert Key
     description: Tls Client Cert Key
     multiline: true
+  - type: xlrelease.BooleanVariable
+    key: prune
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Prune
+    description: Prune specifies whether to delete resources from the cluster that
+      are not found in the sources anymore as part of automated sync.
+  - type: xlrelease.BooleanVariable
+    key: selfHeal
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Self Heal
+    description: SelfHeal specifies whether to revert resources back to their desired
+      state upon modification in the cluster.
+  - type: xlrelease.BooleanVariable
+    key: skipSchemaValidation
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Skip schema validation
+  - type: xlrelease.BooleanVariable
+    key: pruneLast
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Prune last
+  - type: xlrelease.BooleanVariable
+    key: autoCreateNamespace
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Auto create namespace
+  - type: xlrelease.BooleanVariable
+    key: applyOutOfSyncOnly
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Apply out of sync only
+  - type: xlrelease.StringVariable
+    key: prunePropagationPolicy
+    requiresValue: false
+    showOnReleaseStart: false
+    valueProvider:
+      type: xlrelease.ListOfStringValueProviderConfiguration
+      values:
+        - foreground
+        - background
+        - orphan
+    value: foreground
+    label: Prune Propagation Policy
+  - type: xlrelease.BooleanVariable
+    key: replace
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Replace
+    description: "Caution: Uses kubectl replace/create commands"
   - type: xlrelease.StringVariable
     key: deleteWorkflowId
     requiresValue: false
