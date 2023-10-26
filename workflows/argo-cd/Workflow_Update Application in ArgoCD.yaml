@@ -115,6 +115,7 @@ spec:
           autoCreateNamespace: "${autoCreateNamespace}"
           pruneLast: "${pruneLast}"
           pruneResources: "${prune}"
+          prunePropagationPolicy: "${prunePropagationPolicy}"
           selfHeal: "${selfHeal}"
           applyOutOfSyncOnly: "${applyOutOfSyncOnly}"
         capabilities:
