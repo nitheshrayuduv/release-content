@@ -42,6 +42,7 @@ spec:
         - clusterUrl
         - applicationName
         - projectName
+        - environmentTag
     - name: Git repository input
       type: xlrelease.UserInputTask
       description: "Git input fields. You can change the repository, path and branch."
@@ -253,6 +254,7 @@ spec:
           app.applicationName = "${applicationName}"
           app.applicationReference = "${clusterUrl}"
           app.connectionServer = connectionServer
+          app.environmentTag = "${environmentTag}"
           app.deleteWorkflowId = "${deleteWorkflowId}"
           app.updateWorkflowId = "${updateWorkflowId}"
           
@@ -454,6 +456,13 @@ spec:
     showOnReleaseStart: false
     label: Password
     description: Password for automated tasks user
+  - type: xlrelease.StringVariable
+    key: environmentTag
+    showOnReleaseStart: false
+    label: Environment Tag
+    description: Marks how the application is managed, use Release value for apps managed from Release
+    value: PROD
+  disableNotifications: true
   scriptUsername: "${runAsUsername}"
   variableMapping:
     scriptUserPassword: "${runAsUserPassword}"
