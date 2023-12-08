@@ -75,16 +75,8 @@ spec:
       type: kubernetes.CreateNamespace
       description: "Creates '${namespace}' namespace."
       precondition: |-
-        import json
-
-        def get_result_from_response(resp):
-            if resp.has_key('exists') and resp['exists'] != 'false':
-              return False
-            else:
-              return True
-
-        if releaseVariables.has_key('argoNamespaceExists'):
-          result = get_result_from_response(releaseVariables['argoNamespaceExists'])
+        if releaseVariables['namespaceExistsResponse']['exists'] == 'false':
+          result = True
         else:
           result = False
       variableMapping:
