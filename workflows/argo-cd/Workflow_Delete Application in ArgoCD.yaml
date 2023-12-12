@@ -5,12 +5,18 @@ metadata:
   home: Digital.ai - Official/Workflows/ArgoCD
 spec:
 - template: Delete Application in ArgoCD
-  kind: WORKFLOW
   scheduledStartDate: 2023-04-27T18:30:00+05:30
   dueDate: 2023-04-27T19:30:00+05:30
   phases:
   - phase: Delete Application in ArgoCD
     tasks:
+    - name: Specify RunAs user
+      type: xlrelease.UserInputTask
+      description: Specify the Run as user credentials which will be used to run the
+        workflow. All automated tasks will be run as this user.
+      variables:
+      - runAsUsername
+      - runAsUserPassword
     - name: Application Details
       type: xlrelease.UserInputTask
       description: Please enter the required information below.
@@ -29,6 +35,7 @@ spec:
       type: xlrelease.UserInputTask
       description: Please enter the required information below.
     color: '#3d6c9e'
+  kind: WORKFLOW
   categories:
   - Application onboarding
   variables:
@@ -49,7 +56,20 @@ spec:
     label: ArgoCD API server
     description: ArgoCD Api Server connection details
     referencedType: argocd.APIServer
-  scriptUsername: admin
+  - type: xlrelease.StringVariable
+    key: runAsUsername
+    showOnReleaseStart: false
+    label: Run automated tasks as user
+    description: Run all automated tasks in this workflow as user
+  - type: xlrelease.PasswordStringVariable
+    key: runAsUserPassword
+    showOnReleaseStart: false
+    label: Password
+    description: Password for automated tasks user
+  disableNotifications: true
+  scriptUsername: "${runAsUsername}"
+  variableMapping:
+    scriptUserPassword: "${runAsUserPassword}"
   author: Digital.ai
   logo:
     type: xlrelease.TemplateLogo
