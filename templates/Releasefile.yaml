@@ -1,0 +1,38 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  home: Digital.ai - Official/Templates
+spec:
+- directory: Governance Pipeline
+  children:
+  - type: xlrelease.FolderVersioningSettings
+    gitConnection: Digital.ai Official Repository
+    scmPath: templates/governance
+    branch: main
+    autoImport: false
+    exportWorkflows: false
+    exportPatterns: false
+    exportVariables: false
+    exportTriggers: false
+    exportConfiguration: false
+    exportDashboards: false
+    exportNotifications: false
+    versioningStyle: multipleFilesPerCIType
+---
+apiVersion: xl-release/v1
+kind: Permissions
+metadata:
+  home: Digital.ai - Official/Templates
+spec:
+- directory: "."
+  teams:
+  - name: Viewer
+    roles:
+    - Authenticated Users
+    permissions:
+    - template#view
+    - folder#view
+  - name: Template Owner
+  - name: Folder Owner
+  - name: Release Admin
