@@ -4,7 +4,9 @@ kind: Templates
 metadata:
   home: Digital.ai - Official/Templates/Governance Pipeline
 spec:
-- template: GovernancePipelineExample-1-Updated
+- template: FinancialInstitutionGovernancePipeline
+  description: '** This template is an example of release governance for a financial
+    institution. It shows the various compliance and governance checks before each deployment gate and also the artifact certification process to ensure the right artifact is deployed'
   scheduledStartDate: 2018-03-08T14:00:00Z
   dueDate: 2018-03-08T15:00:00Z
   phases:
