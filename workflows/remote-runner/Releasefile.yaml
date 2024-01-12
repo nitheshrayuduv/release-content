@@ -4,3 +4,4 @@ kind: Import
 spec:
   imports:
   - Workflow_Install additional Remote Runner onto existing Kubernetes cluster with an existing Remote Runner.yaml
+  - Workflow_Install Remote Runner onto existing Kubernetes cluster.yaml

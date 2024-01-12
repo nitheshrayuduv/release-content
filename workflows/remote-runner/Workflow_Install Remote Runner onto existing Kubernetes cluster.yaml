@@ -1,0 +1,56 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  home: Digital.ai - Official/Workflows/Remote runner
+spec:
+  - template: Install Remote Runner onto existing Kubernetes cluster
+    scheduledStartDate: 2023-12-22T09:00:00+01:00
+    phases:
+      - phase: Workflow tasks
+        tasks:
+          - name: Install remote runner
+            type: xlrelease.Task
+            description: |-
+              ## Prerequisites
+              - Configured Kubernetes cluster
+              - [XL CLI](https://docs.digital.ai/bundle/devops-deploy-version-v.23.3/page/deploy/how-to/install-the-xl-cli.html) installed
+              
+              ## Install new remote runner through XL CLI
+              
+              Run `xl kube install`
+              
+              When prompted for product to install, select `dai-release-remote-runner [Remote Runner for Digital.ai Release]`
+              
+              To customize the configuration based on your setup, please provide the corresponding inputs when prompted.
+    kind: WORKFLOW
+    categories:
+      - Install remote runner
+    variables:
+      - type: xlrelease.StringVariable
+        key: apiUrl
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Description
+        description: The description of the item.
+      - type: xlrelease.StringVariable
+        key: customerID
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Description
+        description: The description of the item.
+      - type: xlrelease.StringVariable
+        key: customer
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Description
+        description: The description of the item.
+      - type: xlrelease.StringVariable
+        key: identityServerUrl
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Description
+        description: The description of the item.
+    disableNotifications: true
+    author: admin
+    defaultTargetFolder: Digital.ai - Official/Workflows/Remote runner
