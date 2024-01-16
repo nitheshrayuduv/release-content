@@ -7,6 +7,7 @@ spec:
   - template: Install Remote Runner and embedded Kubernetes cluster using Digital.ai
       Platform
     scheduledStartDate: 2024-01-12T09:00:00+01:00
+    dueDate: 2024-01-12T10:00:00+01:00
     phases:
       - phase: Workflow tasks
         tasks:
@@ -18,15 +19,20 @@ spec:
             variables:
               - runAsUsername
               - runAsPassword
+          - name: Select Digital.ai Platform server
+            type: xlrelease.UserInputTask
+            description: Specify the Digital.ai Platform server to install Cloud Connector.
+            variables:
+              - daiPlatformServer
           - name: Get available agent runtimes
             type: daiplatform.GetAgentRuntimes
-            daiPlatformServer: acme
             variableMapping:
+              pythonScript.daiPlatformServer: "${daiPlatformServer}"
               pythonScript.output: "${agentRuntimesResponse}"
           - name: Get available cloud connectors
             type: daiplatform.GetCloudConnectors
-            daiPlatformServer: acme
             variableMapping:
+              pythonScript.daiPlatformServer: "${daiPlatformServer}"
               pythonScript.output: "${cloudConnectorsResponse}"
           - name: Map agent runtimes and cloud connector names
             type: xlrelease.ScriptTask
@@ -69,8 +75,8 @@ spec:
                   break
           - name: Get Platform access token
             type: daiplatform.GetToken
-            daiPlatformServer: acme
             variableMapping:
+              pythonScript.daiPlatformServer: "${daiPlatformServer}"
               pythonScript.output: "${platformToken}"
           - name: Install the Cloud Connector
             type: xlrelease.Task
@@ -94,7 +100,6 @@ spec:
               - runnerRegistrationToken
           - name: Create agent instance
             type: daiplatform.CreateAgentInstance
-            daiPlatformServer: acme
             agentId: "${agentRuntimeId}"
             alias: remote-runner
             ^description: Remote runner for Digital.ai Release
@@ -103,6 +108,8 @@ spec:
               DAI_AGENT_ID: "${cloudConnectorId}"
               RELEASE_URL: http://host.k3d.internal:5516
             cloudConnectorId: "${cloudConnectorId}"
+            variableMapping:
+              pythonScript.daiPlatformServer: "${daiPlatformServer}"
     kind: WORKFLOW
     categories:
       - Install remote runner
@@ -120,7 +127,6 @@ spec:
         showOnReleaseStart: false
         label: Password
         description: Password for automated tasks user
-        value: !value "xlrelease_PasswordStringVariable_runAsPassword_value"
       - type: xlrelease.StringVariable
         key: cloudConnectorsResponse
         requiresValue: false
@@ -186,6 +192,13 @@ spec:
         showOnReleaseStart: false
         label: Agent Runtime ID
         description: Agent Runtime ID
+      - type: xlrelease.ReferenceVariable
+        key: daiPlatformServer
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Digital.ai Platform Server
+        description: Digital.ai Platform Server to connect
+        referencedType: daiplatform.Server
     disableNotifications: true
     scriptUsername: "${runAsUsername}"
     variableMapping:
