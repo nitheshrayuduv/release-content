@@ -31,8 +31,11 @@ spec:
     roles:
     - Authenticated Users
     permissions:
+    - release#start
     - template#view
     - folder#view
+    - template#create_release
+    - release#view
   - name: Template Owner
   - name: Folder Owner
   - name: Release Admin
