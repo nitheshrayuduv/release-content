@@ -6,21 +6,27 @@ metadata:
 spec:
   - template: Install Remote Runner onto existing Kubernetes cluster
     scheduledStartDate: 2023-12-22T09:00:00+01:00
+    dueDate: 2023-12-22T10:00:00+01:00
     phases:
       - phase: Workflow tasks
         tasks:
-          - name: Install remote runner
+          - name: Prerequisites
             type: xlrelease.Task
             description: |-
               ## Prerequisites
-              - Configured Kubernetes cluster
+              - Kubernetes cluster configured
               - [XL CLI](https://docs.digital.ai/bundle/devops-deploy-version-v.23.3/page/deploy/how-to/install-the-xl-cli.html) installed
-              
+              - Release PAT created
+          - name: Install remote runner
+            type: xlrelease.Task
+            description: |-
               ## Install new remote runner through XL CLI
               
               Run `xl kube install`
               
-              When prompted for product to install, select `dai-release-remote-runner [Remote Runner for Digital.ai Release]`
+              This will start a CLI wizard and you will be asked to select a product for installation. Select `dai-release-remote-runner [Remote Runner for Digital.ai Release]`
+              
+              Prepare Digital.ai Release URL that is accessible from the configured Kubernetes cluster.
               
               To customize the configuration based on your setup, please provide the corresponding inputs when prompted.
     kind: WORKFLOW

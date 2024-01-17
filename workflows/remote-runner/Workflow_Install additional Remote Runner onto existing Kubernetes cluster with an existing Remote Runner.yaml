@@ -11,6 +11,22 @@ spec:
     phases:
       - phase: Workflow tasks
         tasks:
+          - name: Specify RunAs user
+            type: xlrelease.UserInputTask
+            description: Specify the Run as user credentials which will be used to run the
+              workflow. All automated tasks will be run as this user.
+            variables:
+              - runAsUsername
+              - runAsPassword
+          - name: Get Release URL
+            type: xlrelease.ScriptTask
+            script: |-
+              from urlparse import urlparse
+              
+              parsed_url = urlparse("${release.url}")
+              url = "{0.scheme}://{0.netloc}".format(parsed_url)
+              
+              releaseVariables['releaseUrl'] = url
           - name: Input for remote runner installation
             type: xlrelease.UserInputTask
             description: Please enter the required information below.
@@ -302,6 +318,17 @@ spec:
       - Install remote runner
     variables:
       - type: xlrelease.StringVariable
+        key: runAsUsername
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Run automated tasks as user
+        description: Run all automated tasks in this workflow as user
+      - type: xlrelease.PasswordStringVariable
+        key: runAsPassword
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Password
+      - type: xlrelease.StringVariable
         key: namespace
         requiresValue: false
         showOnReleaseStart: false
@@ -347,5 +374,8 @@ spec:
         value: remote-runner
     allowPasswordsInAllFields: true
     disableNotifications: true
+    scriptUsername: "${runAsUsername}"
+    variableMapping:
+      scriptUserPassword: "${runAsPassword}"
     author: admin
     defaultTargetFolder: Digital.ai - Official/Workflows/Remote runner
