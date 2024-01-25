@@ -1,0 +1,330 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  home: Digital.ai - Official/Workflows/Remote Runner
+spec:
+  - template: Install Remote Runner with Digital.ai Cloud Connector
+    description: Install the Remote Runner with an embedded Kubernetes cluster using
+      the Digital.ai Cloud Connector. You need a Digital.ai account for this option.
+    scheduledStartDate: 2024-01-12T09:00:00+01:00
+    dueDate: 2024-01-12T10:00:00+01:00
+    phases:
+      - phase: Workflow tasks
+        tasks:
+          - name: Specify RunAs user
+            type: xlrelease.UserInputTask
+            description: Specify the Run as user credentials which will be used to run the
+              workflow. All automated tasks will be run as this user. It is necessary that
+              user has `release#edit` permission to automatically set release variables.
+              Please enter the required information below.
+            variables:
+              - runAsUsername
+              - runAsPassword
+          - name: Select Digital.ai Platform server
+            type: xlrelease.UserInputTask
+            description: Specify the Digital.ai Platform server to install Cloud Connector.
+            variables:
+              - daiPlatformServer
+          - name: Get available Agent Runtimes
+            type: daiplatform.GetAgentRuntimes
+            output: "${}}}"
+            filter: "name[search]:remote-runner"
+            description: "This is an automated task that fetches all available Agent Runtimes\
+        \ from Digital.ai Platform server, required for further input."
+            variableMapping:
+              pythonScript.daiPlatformServer: "${daiPlatformServer}"
+              pythonScript.output: "${agentRuntimesResponse}"
+          - name: Get available Cloud Connectors
+            type: daiplatform.GetCloudConnectors
+            output: "${}}}"
+            description: "This is an automated task that fetches all available Cloud Connectors\
+        \ from Digital.ai Platform server, required for further input."
+            variableMapping:
+              pythonScript.daiPlatformServer: "${daiPlatformServer}"
+              pythonScript.output: "${cloudConnectorsResponse}"
+          - name: Map Agent Runtimes and Cloud Connector names
+            type: xlrelease.ScriptTask
+            description: This is an automated task that maps Agent Runtimes and Cloud Connectors
+              to their names and populates the lookup for next user input task.
+            script: |-
+              import json
+              
+              agent_runtimes = json.loads(releaseVariables['agentRuntimesResponse'])
+              agent_runtime_names = [agent_runtime['name'] for agent_runtime in agent_runtimes]
+              releaseVariables['agentRuntimeNames'] = agent_runtime_names
+              
+              cloud_connectors = json.loads(releaseVariables['cloudConnectorsResponse'])
+              cloud_connector_names = ['Create a new Cloud Connector']
+              cloud_connector_names.extend([cloud_connector['name'] for cloud_connector in cloud_connectors])
+              releaseVariables['cloudConnectorNames'] = cloud_connector_names
+          - name: Select Agent Runtime and Cloud Connector
+            type: xlrelease.UserInputTask
+            description: |-
+              Select Agent Runtime and Cloud Connector to install the new Remote Runner.
+              You can select an existing Cloud Connector, but in that case you will pick all existing Agent Instances from the Cloud Connector, so if you want to use a new one, select `Create a new Cloud Connector`.
+            variables:
+              - agentRuntimeSelect
+              - cloudConnectorSelect
+          - name: Set new Cloud Connector name
+            type: xlrelease.UserInputTask
+            description: Please provide a name for your new Cloud Connector.
+            precondition: |-
+              if releaseVariables['cloudConnectorSelect'] == 'Create a new Cloud Connector':
+                result = True
+              else:
+                result = False
+            variables:
+              - newCloudConnectorName
+          - name: Create new Cloud Connector
+            type: daiplatform.CreateCloudConnector
+            cloudConnectorName: "${newCloudConnectorName}"
+            description: This is an automated task that creates a new Cloud Connector definition
+              on the Digital.ai Platform.
+            precondition: |-
+              if releaseVariables['cloudConnectorSelect'] == 'Create a new Cloud Connector':
+                result = True
+              else:
+                result = False
+            variableMapping:
+              pythonScript.output: "${createCloudConnectorResponse}"
+              pythonScript.daiPlatformServer: "${daiPlatformServer}"
+          - name: Set Cloud Connector ID
+            type: xlrelease.ScriptTask
+            description: This is an automated task that sets Cloud Connector ID to create
+              a Remote Runner Agent Instance.
+            precondition: |-
+              if releaseVariables['cloudConnectorSelect'] == 'Create a new Cloud Connector':
+                result = True
+              else:
+                result = False
+            script: |-
+              import json
+              
+              create_cloud_connector_response = json.loads(releaseVariables['createCloudConnectorResponse'])
+              releaseVariables['cloudConnectorSelect'] = create_cloud_connector_response['name']
+              releaseVariables['cloudConnectorId'] = create_cloud_connector_response['id']
+          - name: Set Agent Runtime and Cloud Connector
+            type: xlrelease.ScriptTask
+            description: This is an automated task that sets Agent Runtime ID and Cloud
+              Connector ID for creating a new Remote Runner Agent Instance on Digital.ai
+              Platform.
+            script: |-
+              import json
+              
+              agent_runtimes = json.loads(releaseVariables['agentRuntimesResponse'])
+              for agent_runtime in agent_runtimes:
+                if agent_runtime['name'] == releaseVariables['agentRuntimeSelect']:
+                  releaseVariables['agentRuntimeId'] = agent_runtime['id']
+                  break
+              
+              if not releaseVariables['cloudConnectorId']:
+                cloud_connectors = json.loads(releaseVariables['cloudConnectorsResponse'])
+                for cloud_connector in cloud_connectors:
+                  if cloud_connector['name'] == releaseVariables['cloudConnectorSelect']:
+                    releaseVariables['cloudConnectorId'] = cloud_connector['id']
+                    break
+          - name: Get Platform access token
+            type: daiplatform.GetToken
+            output: "${}}"
+            description: This is an automated task that fetches access token from the Digital.ai
+              Platform server. The token is required for installing the Cloud Connector
+              locally.
+            variableMapping:
+              pythonScript.daiPlatformServer: "${daiPlatformServer}"
+              pythonScript.output: "${platformAccessToken}"
+          - name: Install the Cloud Connector
+            type: xlrelease.Task
+            description: |-
+              The Digital.ai Platform provides a customized installer with a unique token for the new tenant.
+              
+              ## Download and start Cloud Connector installer script
+              Copy the following command and paste it into your target machine's terminal.
+              
+              ```
+              curl -X GET 'https://api.staging.digital.ai/workload/v1/cloud_connectors/${cloudConnectorId}/installer/?target_os=linux' -H 'accept: application/x-sh' -H 'authorization: Bearer ${platformAccessToken}' --output dcc-installer.sh && bash dcc-installer.sh && bash cloud-connector-setup.sh
+              ```
+              
+              
+              If the token has expired, return back to step "Get Platform access token".
+          - name: Prepare Digital.ai Release URL
+            type: xlrelease.UserInputTask
+            description: Enter URL of your Digital.ai Release instance that is **accessible
+              from the Kubernetes cluster**.
+            variables:
+              - releaseUrl
+          - name: Create user and token for Remote Runner registration
+            type: xlrelease.UserInputTask
+            description: |-
+              ### Create Remote Runner user and assign permissions
+              
+              * Create a new user `remote-runner`
+              * Create a global role **Remote Runners** with the remote runner user in it
+              * Assign global permission **Runner registration** to the Remote Runners role
+              
+              ### Create access token
+              
+              * Login as `remote-runner`
+              * Go to the **Access tokens** page in the user menu (top right corner)
+              * Create a new token called **Remote Runner token** and copy it into the Remote Runner token field below
+            variables:
+              - runnerRegistrationToken
+          - name: Set Remote Runner name
+            type: xlrelease.UserInputTask
+            description: |-
+              Provide new Remote Runner name.
+              Also, this is the name of all Remote Runner related services in Kubernetes cluster. Consider choosing a name without whitespaces, using only letters, numbers, or hyphens, to ensure compatibility and simplicity across Kubernetes cluster.
+            variables:
+              - remoteRunnerName
+          - name: Create Agent Instance
+            type: daiplatform.CreateAgentInstance
+            agentId: "${agentRuntimeId}"
+            alias: "${remoteRunnerName}"
+            ^description: Remote Runner for Digital.ai Release
+            variables:
+              RUNNER_NAME: "${remoteRunnerName}"
+              RUNNER_REGISTRATION_TOKEN: "${runnerRegistrationToken}"
+              DAI_AGENT_ID: "${cloudConnectorId}"
+              RELEASE_URL: "${releaseUrl}"
+            cloudConnectorId: "${cloudConnectorId}"
+            description: This task creates a new Agent Instance in Digital.ai Platform for
+              selected Agent Runtime and Cloud Connector.
+            variableMapping:
+              pythonScript.daiPlatformServer: "${daiPlatformServer}"
+          - name: Install template container plugin
+            type: xlrelease.Task
+            description: |-
+              The new created Remote Runner should be registered and visible in  [Remote Runners](${releaseUrl}/#/remote-runners) page
+              
+              Download the latest Go plugin **ZIP** file from the [GitHub release page](https://github.com/digital-ai/release-integration-template-go/releases)
+              
+              Upload this zip file in the [Plugin Manager](${releaseUrl}/#/pluginManager) page
+          - name: Create and run a template
+            type: xlrelease.Task
+            description: |-
+              Create a folder called **Test**
+              
+              Create a template called **Hello Go**
+              
+              In the template, add a single **Container Examples: Hello (Go)** task
+              
+              Run the template
+    kind: WORKFLOW
+    categories:
+      - Remote Runner installation
+    variables:
+      - type: xlrelease.StringVariable
+        key: runAsUsername
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Run automated tasks as user
+        description: Run all automated tasks in this workflow as user
+      - type: xlrelease.PasswordStringVariable
+        key: runAsPassword
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Password
+        description: Password for automated tasks user
+      - type: xlrelease.ListStringVariable
+        key: cloudConnectorNames
+        requiresValue: false
+        showOnReleaseStart: false
+        value:
+          - Create a new Cloud Connector
+      - type: xlrelease.ListStringVariable
+        key: agentRuntimeNames
+        requiresValue: false
+        showOnReleaseStart: false
+      - type: xlrelease.StringVariable
+        key: cloudConnectorSelect
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Select Cloud Connector to install
+        description: "Select Cloud Conector from list to install a new Remote Runner.\
+      \ If you want to create a new Cloud Connector, select 'Create a new Cloud Connector'\
+      \ option."
+        valueProvider:
+          type: xlrelease.ListOfStringValueProviderConfiguration
+          variableMapping:
+            values: "${cloudConnectorNames}"
+        value: Create a new Cloud Connector
+      - type: xlrelease.StringVariable
+        key: agentRuntimeSelect
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Select Agent Runtime to install
+        description: Select Agent Runtime that contains Remote Runner configuration. Agent
+          Runtimes are filtered by name that contains 'remote-runner'
+        valueProvider:
+          type: xlrelease.ListOfStringValueProviderConfiguration
+          variableMapping:
+            values: "${agentRuntimeNames}"
+      - type: xlrelease.StringVariable
+        key: platformAccessToken
+        requiresValue: false
+        showOnReleaseStart: false
+      - type: xlrelease.StringVariable
+        key: cloudConnectorId
+        requiresValue: false
+        showOnReleaseStart: false
+      - type: xlrelease.StringVariable
+        key: releaseUrl
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Digital.ai Release URL
+        description: Digital.ai Release URL for Remote Runner to register
+      - type: xlrelease.StringVariable
+        key: runnerRegistrationToken
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Remote Runner token
+        description: The Remote Runner uses this token to call the Digital.ai Release
+          REST API
+      - type: xlrelease.StringVariable
+        key: agentRuntimeId
+        requiresValue: false
+        showOnReleaseStart: false
+      - type: xlrelease.ReferenceVariable
+        key: daiPlatformServer
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Digital.ai Platform Server
+        description: Digital.ai Platform Server to connect
+        referencedType: daiplatform.Server
+      - type: xlrelease.StringVariable
+        key: agentRuntimesResponse
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Output
+        description: Output
+      - type: xlrelease.StringVariable
+        key: cloudConnectorsResponse
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Output
+        description: Output
+      - type: xlrelease.StringVariable
+        key: remoteRunnerName
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Remote Runner name
+        description: Remote Runner name to register on Digital.ai Release
+        value: remote-runner
+      - type: xlrelease.StringVariable
+        key: newCloudConnectorName
+        requiresValue: false
+        showOnReleaseStart: false
+        label: New Cloud Connector name
+        description: New Cloud Connector name that will be created on Digital.ai Platform.
+      - type: xlrelease.StringVariable
+        key: createCloudConnectorResponse
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Output
+        description: Output
+    disableNotifications: true
+    scriptUsername: "${runAsUsername}"
+    variableMapping:
+      scriptUserPassword: "${runAsPassword}"
+    author: admin
+    defaultTargetFolder: Digital.ai - Official/Workflow Executions
