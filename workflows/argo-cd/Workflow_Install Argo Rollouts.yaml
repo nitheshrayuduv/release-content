@@ -5,33 +5,23 @@ metadata:
   home: Digital.ai - Official/Workflows/ArgoCD
 spec:
 - template: Install Argo Rollouts
-  kind: WORKFLOW
   description: Install Argo Rollouts to Kubernetes cluster.
-  scheduledStartDate: 2022-12-07T13:30:00+05:30
-  dueDate: 2022-12-07T14:30:00+05:30
+  scheduledStartDate: 2022-12-07T08:00:00Z
+  dueDate: 2022-12-07T09:00:00Z
   phases:
   - phase: Check if Argo Rollouts is already installed
     tasks:
-    - name: Check if remote runner exists
-      type: xlrelease.ScriptTask
-      description: "Task checks if there is a remote runner enabled. Also, the enabled\
-        \ remote runner needs to have \"remote\" capability."
-      script: |-
-        def check_runners(runners):
-          for runner in runners:
-            if runner["enabled"] and "remote" in runner["capabilities"]:
-              return True
-          return False
-
-        runners = configurationApi.searchByTypeAndTitle("xlrelease.JobRunner", "")
-
-        if not check_runners(runners):
-          raise Exception("There is no job runner with 'remote' capability enabled")
+    - name: Specify RunAs user
+      type: xlrelease.UserInputTask
+      description: Specify the Run as user credentials which will be used to run the
+        workflow. All automated tasks will be run as this user.
+      variables:
+      - runAsUsername
+      - runAsUserPassword
     - name: Input for Argo Rollouts installation
       type: xlrelease.UserInputTask
       description: Input for Kubernetes API server URL and Kubernetes namespace where
         ArgoCD will be installed.Please enter the required information below.
-      owner: "${release.owner}"
       variables:
       - kubernetesApiServer
       - namespace
@@ -85,16 +75,8 @@ spec:
       type: kubernetes.CreateNamespace
       description: "Creates '${namespace}' namespace."
       precondition: |-
-        import json
-
-        def get_result_from_response(resp):
-            if resp.has_key('exists') and resp['exists'] != 'false':
-              return False
-            else:
-              return True
-
-        if releaseVariables.has_key('argoNamespaceExists'):
-          result = get_result_from_response(releaseVariables['argoNamespaceExists'])
+        if releaseVariables['namespaceExistsResponse']['exists'] == 'false':
+          result = True
         else:
           result = False
       variableMapping:
@@ -127,7 +109,6 @@ spec:
     - name: Input for Argo Rollouts CI
       type: xlrelease.UserInputTask
       description: Please enter the required information below.
-      owner: "${release.owner}"
       precondition: |-
         if releaseVariables.has_key('checkService'):
           checkService = releaseVariables['checkService']
@@ -143,6 +124,7 @@ spec:
       type: xlrelease.ScriptTask
       script: '# todo implement when argo rollouts plugin is done'
     color: '#3d6c9e'
+  kind: WORKFLOW
   categories:
   - Application onboarding
   variables:
@@ -187,7 +169,20 @@ spec:
     key: allServicesResponse
     requiresValue: false
     showOnReleaseStart: false
-  scriptUsername: admin
+  - type: xlrelease.StringVariable
+    key: runAsUsername
+    showOnReleaseStart: false
+    label: Run automated tasks as user
+    description: Run all automated tasks in this workflow as user
+  - type: xlrelease.PasswordStringVariable
+    key: runAsUserPassword
+    showOnReleaseStart: false
+    label: Password
+    description: Password for automated tasks user
+  disableNotifications: true
+  scriptUsername: "${runAsUsername}"
+  variableMapping:
+    scriptUserPassword: "${runAsUserPassword}"
   author: Digital.ai
   logo:
     type: xlrelease.TemplateLogo

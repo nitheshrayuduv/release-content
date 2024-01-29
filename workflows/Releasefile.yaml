@@ -9,7 +9,7 @@ spec:
   - type: xlrelease.FolderVersioningSettings
     gitConnection: Digital.ai Official Repository
     scmPath: workflows/argo-cd
-    branch: S-96746
+    branch: main
     autoImport: true
     exportTemplates: false
     exportPatterns: false

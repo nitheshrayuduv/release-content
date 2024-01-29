@@ -5,7 +5,6 @@ metadata:
   home: Digital.ai - Official/Workflows/ArgoCD
 spec:
 - template: Delete Application in ArgoCD
-  kind: WORKFLOW
   scheduledStartDate: 2023-04-27T18:30:00+05:30
   dueDate: 2023-04-27T19:30:00+05:30
   phases:
@@ -16,28 +15,47 @@ spec:
       description: Specify the Run as user credentials which will be used to run the
         workflow. All automated tasks will be run as this user.
       variables:
-        - runAsUsername
-        - runAsUserPassword
+      - runAsUsername
+      - runAsUserPassword
     - name: Application Details
       type: xlrelease.UserInputTask
       description: Please enter the required information below.
       variables:
+      - projectDetails
       - argoCDApiServer
       - Application_name
     - name: Delete Application in ArgoCD
       type: argocd.RemoveApplication
       variableMapping:
-        server: "${argoCDApiServer}"
+        argoServer: "${argoCDApiServer}"
       capabilities:
-        - remote
+      - remote
       applicationName: "${Application_name}"
     - name: Delete Application in Release
-      type: xlrelease.ScriptTask
-      script: "managedApplicationApi.deleteManagedApplication(\"${managedApplicationId}\")"
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
     color: '#3d6c9e'
+  kind: WORKFLOW
   categories:
   - Application onboarding
   variables:
+  - type: xlrelease.StringVariable
+    key: Application_name
+    showOnReleaseStart: false
+    label: Application Name
+    description: Application name to delete from ArgoCD
+  - type: xlrelease.StringVariable
+    key: projectDetails
+    showOnReleaseStart: false
+    label: Project Details
+    description: Name of the project in ArgoCD where the Application is mapped to
+    value: default
+  - type: xlrelease.ReferenceVariable
+    key: argoCDApiServer
+    showOnReleaseStart: false
+    label: ArgoCD API server
+    description: ArgoCD Api Server connection details
+    referencedType: argocd.APIServer
   - type: xlrelease.StringVariable
     key: runAsUsername
     showOnReleaseStart: false
@@ -48,22 +66,7 @@ spec:
     showOnReleaseStart: false
     label: Password
     description: Password for automated tasks user
-  - type: xlrelease.StringVariable
-    key: Application_name
-    showOnReleaseStart: false
-    label: Application Name
-    description: Application name to delete from ArgoCD
-  - type: xlrelease.ReferenceVariable
-    key: argoCDApiServer
-    showOnReleaseStart: false
-    label: ArgoCD API server
-    description: ArgoCD Api Server connection details
-    referencedType: argocd.APIServer
-  - type: xlrelease.StringVariable
-    key: managedApplicationId
-    showOnReleaseStart: false
-    label: Managed Application ID
-    description: Managed Application ID from Release
+  disableNotifications: true
   scriptUsername: "${runAsUsername}"
   variableMapping:
     scriptUserPassword: "${runAsUserPassword}"
