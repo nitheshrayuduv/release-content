@@ -12,20 +12,6 @@ spec:
     phases:
       - phase: Workflow tasks
         tasks:
-          - name: Specify RunAs user
-            type: xlrelease.UserInputTask
-            description: Specify the Run as user credentials which will be used to run the
-              workflow. All automated tasks will be run as this user. It is necessary that
-              user has `release#edit` permission to automatically set release variables.
-              Please enter the required information below.
-            variables:
-              - runAsUsername
-              - runAsPassword
-          - name: Select Digital.ai Platform server
-            type: xlrelease.UserInputTask
-            description: Specify the Digital.ai Platform server to install Cloud Connector.
-            variables:
-              - daiPlatformServer
           - name: Get available Agent Runtimes
             type: daiplatform.GetAgentRuntimes
             output: "${}}}"
@@ -213,18 +199,6 @@ spec:
     categories:
       - Remote Runner installation
     variables:
-      - type: xlrelease.StringVariable
-        key: runAsUsername
-        requiresValue: false
-        showOnReleaseStart: false
-        label: Run automated tasks as user
-        description: Run all automated tasks in this workflow as user
-      - type: xlrelease.PasswordStringVariable
-        key: runAsPassword
-        requiresValue: false
-        showOnReleaseStart: false
-        label: Password
-        description: Password for automated tasks user
       - type: xlrelease.ListStringVariable
         key: cloudConnectorNames
         requiresValue: false
@@ -323,8 +297,6 @@ spec:
         label: Output
         description: Output
     disableNotifications: true
-    scriptUsername: "${runAsUsername}"
-    variableMapping:
-      scriptUserPassword: "${runAsPassword}"
+
     author: admin
     defaultTargetFolder: Digital.ai - Official/Workflow Executions
