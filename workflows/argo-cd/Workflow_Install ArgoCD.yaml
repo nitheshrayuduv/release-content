@@ -236,6 +236,7 @@ spec:
     key: argoCDServerTitle
     showOnReleaseStart: false
     label: ArgoCD API Server Title
+    description: Connection title of ArgoCD API Server in Release
   - type: xlrelease.PasswordStringVariable
     key: argoCDSecret
     requiresValue: false
