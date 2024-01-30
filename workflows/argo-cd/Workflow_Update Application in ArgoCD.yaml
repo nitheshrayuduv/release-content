@@ -11,13 +11,6 @@ spec:
   phases:
   - phase: Application input
     tasks:
-    - name: Specify RunAs user
-      type: xlrelease.UserInputTask
-      description: Specify the Run as user credentials which will be used to run the
-        workflow. All automated tasks will be run as this user.
-      variables:
-        - runAsUsername
-        - runAsUserPassword
     - name: Check if remote runner exists
       type: xlrelease.ScriptTask
       script: |-
@@ -36,35 +29,32 @@ spec:
       description: "Input for ArgoCD API Server, Cluster where the application will\
         \ be deployed (namespace will be chosen later) & existing application name\
         \ which needs to be updated."
-      owner: "${release.owner}"
       variables:
-        - argoCDApiServer
-        - clusterUrl
-        - applicationName
-        - projectName
-        - environmentTag
+      - argoCDApiServer
+      - clusterUrl
+      - applicationName
+      - projectName
+      - environmentTag
     - name: Git repository input
       type: xlrelease.UserInputTask
       description: "Git input fields. You can change the repository, path and branch."
-      owner: "${release.owner}"
       variables:
-        - gitRepo
-        - path
-        - branch
+      - gitRepo
+      - path
+      - branch
     - name: Application information input
       type: xlrelease.UserInputTask
       description: Labels & sync policies.
-      owner: "${release.owner}"
       variables:
-        - autoSync
-        - prune
-        - selfHeal
-        - skipSchemaValidation
-        - pruneLast
-        - autoCreateNamespace
-        - applyOutOfSyncOnly
-        - prunePropagationPolicy
-        - replace
+      - autoSync
+      - prune
+      - selfHeal
+      - skipSchemaValidation
+      - pruneLast
+      - autoCreateNamespace
+      - applyOutOfSyncOnly
+      - prunePropagationPolicy
+      - replace
     color: '#3d6c9e'
   - phase: Check if namespace exists
     tasks:
@@ -74,7 +64,6 @@ spec:
         This task involves providing the namespace in which the application will be deployed and run from. Additionally, you will need to provide the Kubernetes API server to connect to for deploying and managing the application.
 
         If you do not provide a namespace, the task will use the default value. Please ensure that the provided namespace is valid and appropriate for your application
-      owner: "${release.owner}"
       variables:
       - kubernetesApiServer
       - namespace
@@ -106,159 +95,58 @@ spec:
     color: '#3d6c9e'
   - phase: Update ArgoCD application
     tasks:
-      - name: Update ArgoCD application
-        type: argocd.UpdateApplication
-        variableMapping:
-          skipValidation: "${skipSchemaValidation}"
-          server: "${argoCDApiServer}"
-          replace: "${replace}"
-          autoSync: "${autoSync}"
-          autoCreateNamespace: "${autoCreateNamespace}"
-          pruneLast: "${pruneLast}"
-          pruneResources: "${prune}"
-          prunePropagationPolicy: "${prunePropagationPolicy}"
-          selfHeal: "${selfHeal}"
-          applyOutOfSyncOnly: "${applyOutOfSyncOnly}"
-        capabilities:
-          - remote
-        appName: "${applicationName}"
-        project: "${projectName}"
-        url: "${gitRepo}"
-        path: "${path}"
-        revision: "${branch}"
-        cluster: "${clusterUrl}"
-        namespace: "${namespace}"
+    - name: Update ArgoCD application
+      type: argocd.UpdateApplication
+      variableMapping:
+        skipValidation: "${skipSchemaValidation}"
+        server: "${argoCDApiServer}"
+        replace: "${replace}"
+        autoSync: "${autoSync}"
+        autoCreateNamespace: "${autoCreateNamespace}"
+        pruneLast: "${pruneLast}"
+        prunePropagationPolicy: "${prunePropagationPolicy}"
+        pruneResources: "${prune}"
+        selfHeal: "${selfHeal}"
+        applyOutOfSyncOnly: "${applyOutOfSyncOnly}"
+      capabilities:
+      - remote
+      appName: "${applicationName}"
+      project: "${projectName}"
+      url: "${gitRepo}"
+      path: "${path}"
+      revision: "${branch}"
+      cluster: "${clusterUrl}"
+      namespace: "${namespace}"
     color: '#3d6c9e'
   - phase: Sync & Get status
     tasks:
-      - name: Sync Application
-        type: argocd.SyncApplication
-        variableMapping:
-          server: "${argoCDApiServer}"
-        capabilities:
-          - remote
-        applicationName: "${applicationName}"
-      - name: Get application status
-        type: argocd.CheckApplicationStatus
-        description: Checks if application is successfully updated.
-        variableMapping:
-          server: "${argoCDApiServer}"
-        capabilities:
-          - remote
-        applicationName: "${applicationName}"
+    - name: Sync Application
+      type: argocd.SyncApplication
+      variableMapping:
+        server: "${argoCDApiServer}"
+      capabilities:
+      - remote
+      applicationName: "${applicationName}"
+    - name: Get application status
+      type: argocd.CheckApplicationStatus
+      description: Checks if application is successfully updated.
+      variableMapping:
+        server: "${argoCDApiServer}"
+      capabilities:
+      - remote
+      applicationName: "${applicationName}"
     color: '#3d6c9e'
   - phase: Update Managed Application
     tasks:
-      - name: Fetch current delete and update workflow IDs
-        type: xlrelease.ScriptTask
-        script: |-
-          app = managedApplicationApi.getManagedApplication("${managedApplicationId}")
-          
-          releaseVariables['deleteWorkflowId'] = app.deleteWorkflowId
-          releaseVariables['updateWorkflowId'] = app.updateWorkflowId
-      - name: Change update and delete workflows
-        type: xlrelease.UserInputTask
-        description: Please enter the required information below.
-        variables:
-          - updateDeleteWorkflow
-          - updateUpdateWorkflow
-      - name: Set Delete Workflow title and folderPath
-        type: xlrelease.UserInputTask
-        description: Please enter the required information below.
-        precondition: "${updateDeleteWorkflow}"
-        variables:
-          - deleteWorkflowTitle
-          - deleteWorkflowFolderPath
-      - name: Fetch Delete Workflow
-        type: xlrelease.ScriptTask
-        precondition: "${updateDeleteWorkflow}"
-        script: |-
-          from com.xebialabs.xlrelease.api.v1.filter import WorkflowFilters
-          
-          folderId = ""
-          folderPath = "${deleteWorkflowFolderPath}"
-          if folderPath:
-            folder = folderApi.find(folderPath, 1)
-            if folder:
-              folderId = folder.id
-            else:
-              raise Exception('Folder not found by path')
-          
-          if not folderId:
-            folderId = release.originTemplateId.split('/Release')[0]
-          
-          filters = WorkflowFilters()
-          filters.searchInput = "${deleteWorkflowTitle}"
-          filters.folderId = folderId
-          result = WorkflowApi.searchWorkflows(filters, 0, 100)
-          
-          workflows = result.content
-          if result.numberOfElements == 1:
-            releaseVariables['deleteWorkflowId'] = workflows[0].id
-          elif result.numberOfElements > 1:
-            raise Exception('Found more than one workflow, please specify parameters in previous step and retry')
-          else:
-            raise Exception('No delete workflow found, please specify parameters in previous step and retry')
-      - name: Set Update Workflow title and folderPath
-        type: xlrelease.UserInputTask
-        description: Please enter the required information below.
-        precondition: "${updateUpdateWorkflow}"
-        variables:
-          - updateWorkflowTitle
-          - updateWorkflowFolderPath
-      - name: Fetch Update Workflow
-        type: xlrelease.ScriptTask
-        precondition: "${updateUpdateWorkflow}"
-        script: |-
-          from com.xebialabs.xlrelease.api.v1.filter import WorkflowFilters
-          
-          folderId = ""
-          folderPath = "${updateWorkflowFolderPath}"
-          if folderPath:
-            folder = folderApi.find(folderPath, 1)
-            if folder:
-              folderId = folder.id
-            else:
-              raise Exception('Folder not found by path')
-          
-          if not folderId:
-            folderId = release.originTemplateId.split('/Release')[0]
-          
-          filters = WorkflowFilters()
-          filters.searchInput = "${updateWorkflowTitle}"
-          filters.folderId = folderId
-          result = WorkflowApi.searchWorkflows(filters, 0, 100)
-          
-          workflows = result.content
-          if result.numberOfElements == 1:
-            releaseVariables['updateWorkflowId'] = workflows[0].id
-          elif result.numberOfElements > 1:
-            raise Exception('Found more than one workflow, please specify parameters in previous step and retry')
-          else:
-            raise Exception('No update workflow found, please specify parameters in previous step and retry')
-      - name: Update Application in Release
-        type: xlrelease.ScriptTask
-        script: |-
-          from com.xebialabs.xlrelease.api.v1.views import ManagedApplicationView
-          from com.xebialabs.xlrelease.api.v1.views import ConnectionServerView
-          
-          from java.text import SimpleDateFormat
-          
-          configuration = configurationApi.getConfiguration("${argoCDApiServer}")
-          url = configuration["url"]
-          
-          connectionServer = ConnectionServerView("${argoCDApiServer}", "server", "argocd.APIServer", url)
-          
-          app = managedApplicationApi.getManagedApplication("${managedApplicationId}")
-          
-          app.applicationName = "${applicationName}"
-          app.applicationReference = "${clusterUrl}"
-          app.connectionServer = connectionServer
-          app.environmentTag = "${environmentTag}"
-          app.deleteWorkflowId = "${deleteWorkflowId}"
-          app.updateWorkflowId = "${updateWorkflowId}"
-          
-          res = managedApplicationApi.updateManagedApplication(app)
+    - name: Update Application in Release
+      type: managedApplications.UpdateApplication
+      applicationName: "${applicationName}"
+      managedBy: ""
+      environmentTag: "${environmentTag}"
+      applicationReference: "${clusterUrl}"
+      variableMapping:
+        pythonScript.managedApplicationId: "${managedApplicationId}"
+        pythonScript.connectionServer: "${argoCDApiServer}"
     color: '#3d6c9e'
   kind: WORKFLOW
   categories:
@@ -370,14 +258,14 @@ spec:
     key: prunePropagationPolicy
     requiresValue: false
     showOnReleaseStart: false
+    label: Prune Propagation Policy
     valueProvider:
       type: xlrelease.ListOfStringValueProviderConfiguration
       values:
-        - foreground
-        - background
-        - orphan
+      - foreground
+      - background
+      - orphan
     value: foreground
-    label: Prune Propagation Policy
   - type: xlrelease.BooleanVariable
     key: replace
     requiresValue: false
@@ -391,81 +279,12 @@ spec:
     description: "ID of the Managed Application, its value should come when running\
     \ workflow as edit action from managed applications."
   - type: xlrelease.StringVariable
-    key: deleteWorkflowId
-    requiresValue: false
-    showOnReleaseStart: false
-    label: Delete Workflow CI ID
-    description: CI ID of the the Delete workflow to be triggered as delete action
-      from managed applications
-  - type: xlrelease.StringVariable
-    key: updateWorkflowId
-    requiresValue: false
-    showOnReleaseStart: false
-    label: Update Workflow CI ID
-    description: CI ID of the the Update Workflow to be triggered as edit action from
-      managed applications
-  - type: xlrelease.BooleanVariable
-    key: updateDeleteWorkflow
-    requiresValue: false
-    showOnReleaseStart: false
-    label: Do you want to update Delete Workflow
-    description: If true user will be able to update Delete Workflow for this application
-  - type: xlrelease.BooleanVariable
-    key: updateUpdateWorkflow
-    requiresValue: false
-    showOnReleaseStart: false
-    label: Do you want to update Update Workflow
-    description: If true user will be able to update Update Workflow for this application
-  - type: xlrelease.StringVariable
-    key: deleteWorkflowFolderPath
-    requiresValue: false
-    showOnReleaseStart: false
-    label: Folder path of the Delete Workflow
-    description: Location of the Delete Workflow for this application (if empty script
-      will use folder of the workflow template)
-    value: Digital.ai - Official/Workflows/ArgoCD
-  - type: xlrelease.StringVariable
-    key: deleteWorkflowTitle
-    requiresValue: false
-    showOnReleaseStart: false
-    label: Title of the Delete Workflow
-    description: Title of the Delete Workflow for this application
-    value: Delete Application in ArgoCD
-  - type: xlrelease.StringVariable
-    key: updateWorkflowFolderPath
-    requiresValue: false
-    showOnReleaseStart: false
-    label: Folder path of the Update Workflow
-    description: Location of the Update Workflow for this application (if empty script
-      will use folder of the workflow template)
-    value: Digital.ai - Official/Workflows/ArgoCD
-  - type: xlrelease.StringVariable
-    key: updateWorkflowTitle
-    requiresValue: false
-    showOnReleaseStart: false
-    label: Title of the Update Workflow
-    description: Title of the Update Workflow for this application
-    value: Update Application in ArgoCD
-  - type: xlrelease.StringVariable
-    key: runAsUsername
-    showOnReleaseStart: false
-    label: Run automated tasks as user
-    description: Run all automated tasks in this workflow as user
-  - type: xlrelease.PasswordStringVariable
-    key: runAsUserPassword
-    showOnReleaseStart: false
-    label: Password
-    description: Password for automated tasks user
-  - type: xlrelease.StringVariable
     key: environmentTag
     showOnReleaseStart: false
     label: Environment Tag
     description: Marks how the application is managed, use Release value for apps managed from Release
     value: PROD
   disableNotifications: true
-  scriptUsername: "${runAsUsername}"
-  variableMapping:
-    scriptUserPassword: "${runAsUserPassword}"
   author: Digital.ai
   logo:
     type: xlrelease.TemplateLogo

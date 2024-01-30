@@ -12,13 +12,6 @@ spec:
     phases:
       - phase: Check if application exists
         tasks:
-          - name: Specify RunAs user
-            type: xlrelease.UserInputTask
-            description: Specify the Run as user credentials which will be used to run the
-              workflow. All automated tasks will be run as this user.
-            variables:
-              - runAsUsername
-              - runAsUserPassword
           - name: Check if remote runner exists
             type: xlrelease.ScriptTask
             script: |-
@@ -249,106 +242,17 @@ spec:
         color: '#3d6c9e'
       - phase: Create Managed Application
         tasks:
-          - name: Set Delete Workflow title and folderPath
-            type: xlrelease.UserInputTask
-            description: Please enter the required information below.
-            variables:
-              - deleteWorkflowTitle
-              - deleteWorkflowFolderPath
-          - name: Fetch delete workflow
-            type: xlrelease.ScriptTask
-            script: |-
-              from com.xebialabs.xlrelease.api.v1.filter import WorkflowFilters
-              
-              folderId = ""
-              folderPath = "${deleteWorkflowFolderPath}"
-              if folderPath:
-                folder = folderApi.find(folderPath, 1)
-                if folder:
-                  folderId = folder.id
-                else:
-                  raise Exception('Folder not found by path')
-              
-              if not folderId:
-                folderId = release.originTemplateId.split('/Release')[0]
-              
-              filters = WorkflowFilters()
-              filters.searchInput = "${deleteWorkflowTitle}"
-              filters.folderId = folderId
-              result = WorkflowApi.searchWorkflows(filters, 0, 100)
-              
-              workflows = result.content
-              if result.numberOfElements == 1:
-                releaseVariables['deleteWorkflowId'] = workflows[0].id
-              elif result.numberOfElements > 1:
-                raise Exception('Found more than one workflow, please specify parameters in previous step and retry')
-              else:
-                raise Exception('No delete workflow found, please specify parameters in previous step and retry')
-          - name: Set Update Workflow title and folderPath
-            type: xlrelease.UserInputTask
-            description: Please enter the required information below.
-            variables:
-              - updateWorkflowTitle
-              - updateWorkflowFolderPath
-          - name: Fetch update workflow
-            type: xlrelease.ScriptTask
-            script: |-
-              from com.xebialabs.xlrelease.api.v1.filter import WorkflowFilters
-              
-              folderId = ""
-              folderPath = "${updateWorkflowFolderPath}"
-              if folderPath:
-                folder = folderApi.find(folderPath, 1)
-                if folder:
-                  folderId = folder.id
-                else:
-                  raise Exception('Folder not found by path')
-              
-              if not folderId:
-                folderId = release.originTemplateId.split('/Release')[0]
-              
-              filters = WorkflowFilters()
-              filters.searchInput = "${updateWorkflowTitle}"
-              filters.folderId = folderId
-              result = WorkflowApi.searchWorkflows(filters, 0, 100)
-              
-              workflows = result.content
-              if result.numberOfElements == 1:
-                releaseVariables['updateWorkflowId'] = workflows[0].id
-              elif result.numberOfElements > 1:
-                raise Exception('Found more than one workflow, please specify parameters in previous step and retry')
-              else:
-                raise Exception('No update workflow found, please specify parameters in previous step and retry')
           - name: Create managed application
-            type: xlrelease.ScriptTask
-            description: Adds the created ArgoCD application to the Digital.ai Release managed
-              application list.
-            script: |-
-              from com.xebialabs.xlrelease.api.v1.views import ManagedApplicationView
-              from com.xebialabs.xlrelease.api.v1.views import ConnectionServerView
-              
-              from java.util import Date
-              from java.text import SimpleDateFormat
-              
-              dateCreated = Date()
-              
-              configuration = configurationApi.getConfiguration("${argoCDApiServer}")
-              url = configuration["url"]
-              
-              connectionServer = ConnectionServerView("${argoCDApiServer}", "server", "argocd.APIServer", url)
-              
-              requestBody = ManagedApplicationView()
-              requestBody.applicationName = "${applicationName}"
-              requestBody.managedBy = "${managedBy}"
-              requestBody.dateCreated = dateCreated
-              requestBody.environmentTag = "${environmentTag}"
-              requestBody.applicationReference = "${clusterUrl}"
-              requestBody.connectionServer = connectionServer
-              requestBody.workflowId = release.originTemplateId
-              requestBody.deleteWorkflowId = "${deleteWorkflowId}"
-              requestBody.updateWorkflowId = "${updateWorkflowId}"
-              
-              res = managedApplicationApi.addManagedApplication(requestBody)
+            type: managedApplications.CreateApplication
+            applicationName: "${applicationName}"
+            managedBy: "${managedBy}"
+            environmentTag: "${environmentTag}"
+            applicationReference: "${clusterUrl}"
+            deleteWorkflowId: "Delete Application in ArgoCD"
+            updateWorkflowId: "Update Application in ArgoCD"
+            variableMapping:
+              pythonScript.managedApplicationId: "${managedApplicationId}"
+              pythonScript.connectionServer: "${argoCDApiServer}"
         color: '#3d6c9e'
     kind: WORKFLOW
     categories:
@@ -430,16 +334,6 @@ spec:
         description: "Marks how the application is managed, use Release value for apps\
       \ managed from Release"
         value: Release
-      - type: xlrelease.StringVariable
-        key: runAsUsername
-        showOnReleaseStart: false
-        label: Run automated tasks as user
-        description: Run all automated tasks in this workflow as user
-      - type: xlrelease.PasswordStringVariable
-        key: runAsUserPassword
-        showOnReleaseStart: false
-        label: Password
-        description: Password for automated tasks user
       - type: xlrelease.StringVariable
         key: repoAccess
         showOnReleaseStart: false
@@ -631,44 +525,19 @@ spec:
         label: Update Workflow CI ID
         description: CI ID of the the Update Workflow to be triggered as edit action from
           managed applicationsScript (this is set by template)
-      - type: xlrelease.StringVariable
-        key: deleteWorkflowFolderPath
-        requiresValue: false
-        showOnReleaseStart: false
-        label: Folder path of the Delete Workflow
-        description: Location of the Delete Workflow for this application (if empty script
-          will use folder of the workflow template)
-        value: Digital.ai - Official/Workflows/ArgoCD
-      - type: xlrelease.StringVariable
-        key: deleteWorkflowTitle
-        showOnReleaseStart: false
-        label: Title of the Delete Workflow
-        description: Title of the Delete Workflow for this application
-        value: Delete Application in ArgoCD
-      - type: xlrelease.StringVariable
-        key: updateWorkflowFolderPath
-        requiresValue: false
-        showOnReleaseStart: false
-        label: Folder path of the Update Workflow
-        description: Location of the Update Workflow for this application (if empty script
-          will use folder of the workflow template)
-        value: Digital.ai - Official/Workflows/ArgoCD
-      - type: xlrelease.StringVariable
-        key: updateWorkflowTitle
-        showOnReleaseStart: false
-        label: Title of the Update Workflow
-        description: Title of the Update Workflow for this application
-        value: Update Application in ArgoCD
       - type: xlrelease.MapStringStringVariable
         key: repositoryListResponse
         requiresValue: false
         showOnReleaseStart: false
         label: Command Response
         description: Command Response
+      - type: xlrelease.StringVariable
+        key: managedApplicationId
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Application ID
+        description: Application ID in Digital.ai Release
     disableNotifications: true
-    scriptUsername: "${runAsUsername}"
-    variableMapping:
-      scriptUserPassword: "${runAsUserPassword}"
     author: Digital.ai
     logo:
       type: xlrelease.TemplateLogo
