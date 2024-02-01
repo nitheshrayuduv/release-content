@@ -41,7 +41,8 @@ spec:
       variables:
       - gitRepo
       - path
-      - branch
+      - revision
+      - chart
     - name: Application information input
       type: xlrelease.UserInputTask
       description: Labels & sync policies.
@@ -114,7 +115,8 @@ spec:
       project: "${projectName}"
       url: "${gitRepo}"
       path: "${path}"
-      revision: "${branch}"
+      revision: "${revision}"
+      chart: "${chart}"
       cluster: "${clusterUrl}"
       namespace: "${namespace}"
     color: '#3d6c9e'
@@ -171,12 +173,18 @@ spec:
     description: The directory or path in the Git repository where the application's
       manifests are located.
   - type: xlrelease.StringVariable
-    key: branch
+    key: revision
     showOnReleaseStart: false
-    label: Branch
+    label: Revision
     description: The revision or branch in the Git repository to use for this application.
       Defaults to the latest commit in the default branch (HEAD).
     value: HEAD
+  - type: xlrelease.StringVariable
+    key: chart
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Helm chart
+    description: Helm chart name
   - type: xlrelease.StringVariable
     key: clusterUrl
     showOnReleaseStart: false
