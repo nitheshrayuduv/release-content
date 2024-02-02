@@ -12,13 +12,6 @@ spec:
   phases:
   - phase: Setup Infra and Env
     tasks:
-    - name: Specify Run As User
-      type: xlrelease.UserInputTask
-      description: Specify the Run as user credentials which will be used to run the
-        workflow. All automated tasks will be run as this user.
-      variables:
-      - runAsUsername
-      - runAsUserPassword
     - name: Specify Deploy Server Connection
       type: xlrelease.UserInputTask
       description: Select the Digital.ai Deploy Server Connection onto which the AWS
@@ -187,31 +180,17 @@ spec:
             "role":"${role} ",
             "handler":"${handler} "
         }
-    - name: Add Managed Application
-      type: xlrelease.ScriptTask
+    - name: Add managed application
+      type: managedApplications.CreateApplication
       description: Adds the lambda application created to the Release Managed Application
         view.
-      owner: admin
-      script: |-
-        from com.xebialabs.xlrelease.api.v1.views import ManagedApplicationView
-        from com.xebialabs.xlrelease.api.v1.views import ConnectionServerView
-        from java.util import Date
-        from java.text import SimpleDateFormat
-        import datetime
-
-        parsedDate = datetime.datetime.now()
-
-        requestBody = ManagedApplicationView()
-        requestBody.applicationName = "${applicationName}"
-        requestBody.managedBy = "Digital.ai Deploy"
-        requestBody.dateCreated = parsedDate
-        requestBody.environmentTag = "${environmentName}"
-        requestBody.applicationReference = "${applicationName}"
-
-        connectionServer = ConnectionServerView('${deployServer}', '', '', '')
-        requestBody.connectionServer = connectionServer
-
-        res = managedApplicationApi.addManagedApplication(requestBody)
+      applicationName: "${applicationName}"
+      managedBy: "Digital.ai Deploy"
+      environmentTag: "${environmentName}"
+      applicationReference: "${applicationName}"
+      variableMapping:
+        pythonScript.managedApplicationId: "${managedApplicationId}"
+        pythonScript.connectionServer: "${deployServer}"
     color: '#3d6c9e'
   kind: WORKFLOW
   categories:
@@ -277,20 +256,7 @@ spec:
     requiresValue: false
     showOnReleaseStart: false
     description: AWS account session token (optional)
-  - type: xlrelease.StringVariable
-    key: runAsUsername
-    showOnReleaseStart: false
-    label: Run automated tasks as user
-    description: Run all automated tasks in this workflow as user
-  - type: xlrelease.PasswordStringVariable
-    key: runAsUserPassword
-    showOnReleaseStart: false
-    label: Password
-    description: Password for automated tasks user
   allowPasswordsInAllFields: true
-  scriptUsername: "${runAsUsername}"
-  variableMapping:
-    scriptUserPassword: "${runAsUserPassword}"
   author: Digital.ai
   logo:
     type: xlrelease.TemplateLogo

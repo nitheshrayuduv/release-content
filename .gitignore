@@ -1,0 +1,9 @@
+syntax: glob
+
+# IntelliJ
+.shelf/
+.idea/*
+*.iml
+*.ipr
+*.iws
+*.log

@@ -12,13 +12,6 @@ spec:
   phases:
   - phase: Check if ArgoCD is already installed
     tasks:
-    - name: Specify RunAs user
-      type: xlrelease.UserInputTask
-      description: Specify the Run as user credentials which will be used to run the
-        workflow. All automated tasks will be run as this user.
-      variables:
-      - runAsUsername
-      - runAsUserPassword
     - name: Input for ArgoCD installation
       type: xlrelease.UserInputTask
       description: Input for Kubernetes API server URL and Kubernetes namespace where
@@ -236,23 +229,11 @@ spec:
     key: argoCDServerTitle
     showOnReleaseStart: false
     label: ArgoCD API Server Title
+    description: Connection title of ArgoCD API Server in Release
   - type: xlrelease.PasswordStringVariable
     key: argoCDSecret
     requiresValue: false
     showOnReleaseStart: false
-  - type: xlrelease.StringVariable
-    key: runAsUsername
-    showOnReleaseStart: false
-    label: Run automated tasks as user
-    description: Run all automated tasks in this workflow as user
-  - type: xlrelease.PasswordStringVariable
-    key: runAsUserPassword
-    showOnReleaseStart: false
-    label: Password
-    description: Password for automated tasks user
-  scriptUsername: "${runAsUsername}"
-  variableMapping:
-    scriptUserPassword: "${runAsUserPassword}"
   author: Digital.ai
   logo:
     type: xlrelease.TemplateLogo
