@@ -32,7 +32,8 @@ spec:
               - argoCDApiServer
               - gitRepo
               - path
-              - branch
+              - revision
+              - chart
               - clusterUrl
           - name: Check if application exists
             type: argocd.CheckIfApplicationExists
@@ -49,7 +50,7 @@ spec:
               - remote
             gitRepo: "${gitRepo}"
             path: "${path}"
-            branch: "${branch}"
+            branch: "${revision}"
             clusterUrl: "${clusterUrl}"
         color: '#3d6c9e'
       - phase: Check if namespace exists
@@ -212,7 +213,8 @@ spec:
             project: "${projectName}"
             url: "${gitRepo}"
             path: "${path}"
-            revision: "${branch}"
+            revision: "${revision}"
+            chart: "${chart}"
             namespace: "${namespace}"
         color: '#3d6c9e'
       - phase: Get application status
@@ -281,11 +283,17 @@ spec:
         label: Path
         description: Path inside git repository where configuration is located
       - type: xlrelease.StringVariable
-        key: branch
+        key: revision
         showOnReleaseStart: false
-        label: Branch
-        description: Git branch
+        label: Revision
+        description: "Git - can be commit, tag, or branch. Helm - a semver tag for the\
+          \ Chart's version"
         value: HEAD
+      - type: xlrelease.StringVariable
+        key: chart
+        requiresValue: false
+        label: Helm chart
+        description: Helm chart name
       - type: xlrelease.StringVariable
         key: clusterUrl
         showOnReleaseStart: false
