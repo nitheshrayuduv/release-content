@@ -1039,7 +1039,7 @@ spec:
           - #### Refer release pipeline below for more info via 2 available options (flow view , table view):
           ${delivery_pipeline_url}
     color: '#009CDB'
-  - phase: lle
+  - phase: pre-prod
     tasks:
     - name: Acknowledge/sign off release code quality metrics
       type: xlrelease.SequentialGroup
