@@ -480,9 +480,8 @@ spec:
           pythonScript.result: "${ansible_tower_job_template_id}"
           pythonScript.password: "${nonprod_tower_deployer_password}"
       - name: "Deploy ${artifactoryBuildName}"
-        type: xlrelease.Task
+        type: ansible.RunPlaybook
         description: "## Deploy ${artifactoryBuildName}"
-        flagStatus: ATTENTION_NEEDED
         flagComment: "Task 'Deploy ${artifactoryBuildName}' in Phase 'dev' has been\
           \ replaced by a manual task. The task of type 'ansible.LaunchJobTemplate'\
           \ could not be found because of a missing plugin."
@@ -1505,9 +1504,8 @@ spec:
           pythonScript.result: "${ansible_tower_job_template_id}"
           pythonScript.password: "${nonprod_tower_deployer_password}"
       - name: "Deploy ${artifactoryBuildName}"
-        type: xlrelease.Task
+        type: ansible.RunPlaybook
         description: "## Deploy ${artifactoryBuildName}"
-        flagStatus: ATTENTION_NEEDED
         flagComment: "Task 'Deploy ${artifactoryBuildName}' in Phase 'lle' has been\
           \ replaced by a manual task. The task of type 'ansible.LaunchJobTemplate'\
           \ could not be found because of a missing plugin."
@@ -2965,9 +2963,8 @@ spec:
           pythonScript.result: "${ansible_tower_job_template_id}"
           pythonScript.password: "${towerDeployerPasswordProd}"
       - name: "Deploy ${artifactoryBuildName}"
-        type: xlrelease.Task
+        type: ansible.RunPlaybook
         description: "## Deploy ${artifactoryBuildName}"
-        flagStatus: ATTENTION_NEEDED
         flagComment: "Task 'Deploy ${artifactoryBuildName}' in Phase 'prod' has been\
           \ replaced by a manual task. The task of type 'ansible.LaunchJobTemplate'\
           \ could not be found because of a missing plugin."
