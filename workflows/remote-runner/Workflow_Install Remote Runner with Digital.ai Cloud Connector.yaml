@@ -12,6 +12,11 @@ spec:
     phases:
       - phase: Workflow tasks
         tasks:
+          - name: Select Digital.ai Platform server
+            type: xlrelease.UserInputTask
+            description: Specify the Digital.ai Platform server to install Cloud Connector.
+            variables:
+              - daiPlatformServer
           - name: Get available Agent Runtimes
             type: daiplatform.GetAgentRuntimes
             output: "${}}}"
