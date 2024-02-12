@@ -12,6 +12,18 @@ spec:
     phases:
       - phase: Workflow tasks
         tasks:
+          - name: Set Digital.ai Release URL value placeholder
+            type: xlrelease.ScriptTask
+            description: Setting `$releaseUrl` variable placeholder for further input.
+            script: |-
+              import re
+              
+              pattern = re.compile(r'^(https?://[^:/]+(?:\:\d+)?)')
+              
+              match = pattern.match('${release.url}')
+              
+              if match:
+                  releaseVariables['releaseUrl'] = match.group(1)
           - name: Prepare Digital.ai  Release URL
             type: xlrelease.UserInputTask
             description: Enter URL of your Digital.ai Release instance that is **accessible

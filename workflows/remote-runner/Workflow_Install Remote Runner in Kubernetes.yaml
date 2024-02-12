@@ -67,6 +67,7 @@ spec:
               - Enter the URL for the Digital.ai Release server that is **reachable from within the Kubernetes cluster**
               - Enter token from previous step
               - Enter how many replicas of Remote Runner you want
+              - Enter truststore for Remote Runner
               
               
               To customize the configuration based on your setup, `xl kube install` offers various customization options. Please refer to the [documentation](https://docs.digital.ai/bundle/devops-release-version-v.23.3/page/release/operator/xl-op-before-you-begin.html) for further information
