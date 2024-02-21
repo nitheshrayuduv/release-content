@@ -16,14 +16,14 @@ spec:
       variables:
       - projectDetails
       - argoCDApiServer
-      - Application_name
+      - applicationName
     - name: Delete Application in ArgoCD
       type: argocd.RemoveApplication
       variableMapping:
-        argoServer: "${argoCDApiServer}"
+        server: "${argoCDApiServer}"
       capabilities:
       - remote
-      applicationName: "${Application_name}"
+      applicationName: "${applicationName}"
     - name: Delete Application in Release
       type: managedApplications.DeleteApplication
     color: '#3d6c9e'
@@ -32,7 +32,7 @@ spec:
   - Application onboarding
   variables:
   - type: xlrelease.StringVariable
-    key: Application_name
+    key: applicationName
     showOnReleaseStart: false
     label: Application Name
     description: Application name to delete from ArgoCD
