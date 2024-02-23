@@ -112,6 +112,7 @@ spec:
     description: Password for accessing the Helm chart repository
   - type: xlrelease.BooleanVariable
     key: isUninstall
+    requiresValue: false
     showOnReleaseStart: false
     label: "Yes"
   disableNotifications: true
