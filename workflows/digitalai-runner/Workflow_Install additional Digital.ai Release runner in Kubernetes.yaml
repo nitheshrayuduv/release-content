@@ -4,7 +4,7 @@ kind: Templates
 metadata:
   home: Digital.ai - Official/Workflows/Digital.ai Release runner
 spec:
-  - template: Install additional Digital.ai Runner in Kubernetes
+  - template: Install additional Digital.ai Release runner in Kubernetes
     description: Install an additional Digital.ai Release Runner in a Kubernetes cluster.
       You need a Digital.ai Release Kubernetes container plugin for this option.
     scheduledStartDate: 2023-12-22T09:00:00+01:00
@@ -345,24 +345,19 @@ spec:
                             cpu: "0.5"
                             memory: 512Mi
           - name: Check if runner is installed
-            type: xlrelease.ScriptTask
+            type: kubernetes.CheckResourceReadiness
             description: |-
               Checking if runner installation was successful.
               
               This may take a couple of minutes.
-            script: |-
-              import time
-              
-              runnerInstalled = False
-              for i in range(120):
-                runners = configurationApi.searchByTypeAndTitle("xlrelease.RemoteJobRunner", "{}-0".format(releaseVariables["runnerName"]))
-                if len(runners)>0:
-                  runnerInstalled = True
-                  break
-                time.sleep(1)
-              
-              if not runnerInstalled:
-                raise Exception("Runner is not installed, check logs in Kubernetes")
+            variableMapping:
+              server: "${kubernetesApiServer}"
+            capabilities:
+              - remote
+            namespace: "${namespace}"
+            kind: StatefulSet
+            resourceName: "${runnerName}"
+            timeout: 120
     kind: WORKFLOW
     categories:
       - Digital.ai Release runner installation
@@ -424,10 +419,6 @@ spec:
         label: Replicas
         description: Number of Digital.ai Release runner replicas
         value: 1
-      - type: xlrelease.BooleanVariable
-        key: runnerInstalled
-        requiresValue: false
-        showOnReleaseStart: false
     allowPasswordsInAllFields: true
     disableNotifications: true
     author: admin
