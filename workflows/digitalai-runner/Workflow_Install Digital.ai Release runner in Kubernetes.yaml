@@ -36,7 +36,7 @@ spec:
               
               characters = string.ascii_letters + string.digits
               uid = ''.join(random.choice(characters) for _ in range(6))
-              token_note = releaseVariables["runnerName"] + "-" + uid
+              token_note = "runner-" + uid
               
               token_form = CreatePersonalAccessTokenForm(token_note)
               global_permissions = Set.of("runner#registration")
