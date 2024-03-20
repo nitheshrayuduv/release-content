@@ -1,0 +1,47 @@
+# This workflow will execute xl-apply on newly created or updated yaml files.
+name: xl-apply yaml
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+
+  run_xl_apply:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout release-content Repository
+        uses: actions/checkout@v3
+
+      - name: Pull Release Docker image
+        run: docker pull xebialabsunsupported/xl-release-all-plugins:23.3.5
+
+      - name: Run Docker container
+        run:  |
+          docker run -p 5516:5516 -d --name xlr23.3.5 -e "ACCEPT_EULA=Y"  xebialabsunsupported/xl-release-all-plugins:23.3.5
+          sleep 100
+
+      - name: Download and Install xl-cli
+        run: |
+         wget https://nexus.xebialabs.com/nexus/content/repositories/releases/com/xebialabs/xlclient/xl-client/23.3.5/xl-client-23.3.5-linux-amd64.bin --user=${{ secrets.NEXUS_USERNAME }} --password=${{ secrets.NEXUS_PASSWORD }} -O xl1
+         chmod 755 xl1
+         ./xl1 version
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v43
+
+      - name: Apply yaml files to check if xl-apply works
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          for file in ${ALL_CHANGED_FILES}; do
+            echo "$file was changed"
+            if [[ "$file" == *.yaml || "$file" == *.yml ]]; then
+               echo "$file is yaml file"
+               ./xl1 apply -f $file
+            fi
+          done
