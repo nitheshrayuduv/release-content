@@ -71,7 +71,7 @@ spec:
               - Enter Digital.ai Release runner image information (or use default)
               - Enter Digital.ai Release runner Helm Chart release name and version (or use default)
               - Enter the URL for the Digital.ai Release server that is **reachable from within the Kubernetes cluster**
-              - Enter token `${runnerRegistrationToken}`
+              - Enter token `${token}`
               - Enter how many replicas of Digital.ai Release runner you want
               - Enter truststore for Digital.ai Release runner
               
@@ -82,7 +82,7 @@ spec:
       - Digital.ai Release runner installation
     variables:
       - type: xlrelease.StringVariable
-        key: runnerRegistrationToken
+        key: token
         requiresValue: false
         showOnReleaseStart: false
         label: Description
