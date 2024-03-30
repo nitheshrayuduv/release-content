@@ -333,12 +333,6 @@ spec:
         \ URL\""
             variableMapping:
               pythonScript.daiPlatformServer: "${platformConnection}"
-          - name: Prepare runner registration token
-            type: xlrelease.UserInputTask
-            description: Enter Runner registration token
-            precondition: "releaseVariables[\"troubleshootAction\"] == \"Change Runner token\""
-            variables:
-              - runnerRegistrationToken
           - name: Update Agent Instance
             type: daiplatform.PatchAgentInstance
             agentInstanceId: "${agentInstanceId}"
@@ -349,8 +343,8 @@ spec:
               RELEASE_URL: "${releaseUrl}"
               RUNNER_NAME: "${runnerName}"
             description: Updating Agent Instance values
-            precondition: "releaseVariables[\"troubleshootAction\"] == \"Change Runner token\"\
-        \ or releaseVariables[\"troubleshootAction\"] == \"Change Release URL\""
+            precondition: "releaseVariables[\"troubleshootAction\"] == \"Change Release\
+        \ URL\""
             variableMapping:
               pythonScript.daiPlatformServer: "${platformConnection}"
               pythonScript.output: "${createAgentInstanceResponse}"
@@ -504,7 +498,6 @@ spec:
           type: xlrelease.ListOfStringValueProviderConfiguration
           values:
             - No action needed
-            - Change Runner token
             - Change Release URL
         value: No action needed
       - type: xlrelease.StringVariable
