@@ -2,11 +2,11 @@
 apiVersion: xl-release/v1
 kind: Templates
 metadata:
-  home: Digital.ai - Official/Workflows/Remote Runner
+  home: Digital.ai - Official/Workflows/Digital.ai Release runner
 spec:
-  - template: Install additional Remote Runner in Kubernetes
-    description: Install an additional Remote runner in a Kubernetes cluster. You need
-      a Digital.ai Release Kubernetes container plugin for this option.
+  - template: Install additional Digital.ai Release runner in Kubernetes
+    description: Install an additional Digital.ai Release Runner in a Kubernetes cluster.
+      You need a Digital.ai Release Kubernetes container plugin for this option.
     scheduledStartDate: 2023-12-22T09:00:00+01:00
     dueDate: 2023-12-22T10:00:00+01:00
     phases:
@@ -30,31 +30,36 @@ spec:
               from the Kubernetes cluster**.
             variables:
               - releaseUrl
-          - name: Create user and token for Remote Runner registration
+          - name: Prepare input for Digital.ai Release runner installation on Kubernetes
+              cluster
             type: xlrelease.UserInputTask
-            description: |-
-              ### Create Remote Runner user and assign permissions
-              
-              * Create a new user `remote-runner`
-              * Create a global role **Remote Runners** with the remote runner user in it
-              * Assign global permission **Runner registration** to the Remote Runners role
-              
-              ### Create access token
-              
-              * Login as `remote-runner`
-              * Go to the **Access tokens** page in the user menu (top right corner)
-              * Create a new token called **Remote Runner token** and copy it into the Remote Runner token field below
-            variables:
-              - token
-          - name: Prepare input for Remote Runner installation on Kubernetes cluster
-            type: xlrelease.UserInputTask
-            description: Add required information for adding a new Remote Runner.
+            description: Add required information for adding a new Digital.ai Release Runner.
             variables:
               - kubernetesApiServer
               - namespace
-              - remoteRunnerName
-              - remoteRunnerImage
+              - runnerName
+              - runnerImage
               - replicas
+          - name: Create runner token
+            type: xlrelease.ScriptTask
+            description: Creates runner token for authentication on Digital.ai Release
+            script: |-
+              import random
+              import string
+              from java.util import Set
+              from com.xebialabs.xlrelease.api.v1.forms import CreatePersonalAccessTokenForm
+              
+              characters = string.ascii_letters + string.digits
+              uid = ''.join(random.choice(characters) for _ in range(6))
+              token_note = releaseVariables["runnerName"] + "-" + uid
+              
+              token_form = CreatePersonalAccessTokenForm(token_note)
+              global_permissions = Set.of("runner#registration")
+              token_form.setGlobalPermissions(global_permissions)
+              
+              response = personalAccessTokenApi.createPersonalAccessToken(token_form)
+              
+              releaseVariables["token"] = response.getProperty("token")
           - name: "Check if ${namespace} namespace exists"
             type: kubernetes.ExistsNamespace
             description: "Task checks if ${namespace} namespace already exists. If it doesn't\
@@ -80,7 +85,7 @@ spec:
             capabilities:
               - remote
             namespace: "${namespace}"
-          - name: Create Remote Runner resources
+          - name: Create runner resources
             type: kubernetes.Apply
             description: |-
               Creates all necessary resources on the Kubernetes cluster inside ${namespace} namespace.
@@ -89,58 +94,59 @@ spec:
               server: "${kubernetesApiServer}"
             capabilities:
               - remote
+            namespace: "${namespace}"
             yamlContent: |-
               ---
-              # Source: remote-runner/templates/service-account.yaml
+              # Source: runner/templates/service-account.yaml
               apiVersion: v1
               kind: ServiceAccount
               metadata:
-                name: ${remoteRunnerName}
+                name: ${runnerName}
                 namespace: "${namespace}"
                 labels:
-                  app.kubernetes.io/name: remote-runner
-                  helm.sh/chart: remote-runner-0.1.0
+                  app.kubernetes.io/name: runner
+                  helm.sh/chart: runner-0.1.0
                   app.kubernetes.io/instance: my-release
                   app.kubernetes.io/managed-by: Helm
               ---
-              # Source: remote-runner/templates/secrets.yaml
+              # Source: runner/templates/secrets.yaml
               apiVersion: v1
               kind: Secret
               metadata:
-                name: ${remoteRunnerName}-registration-token
+                name: ${runnerName}-registration-token
                 namespace: "${namespace}"
                 labels:
-                  app.kubernetes.io/name: remote-runner
-                  helm.sh/chart: remote-runner-0.1.0
+                  app.kubernetes.io/name: runner
+                  helm.sh/chart: runner-0.1.0
                   app.kubernetes.io/instance: my-release
                   app.kubernetes.io/managed-by: Helm
               type: Opaque
               stringData:
                 token: "${token} "
               ---
-              # Source: remote-runner/templates/configmaps.yaml
+              # Source: runner/templates/configmaps.yaml
               apiVersion: v1
               kind: ConfigMap
               metadata:
-                name: ${remoteRunnerName}-env-config
+                name: ${runnerName}-env-config
                 namespace: "${namespace}"
                 labels:
-                  app.kubernetes.io/name: remote-runner
-                  helm.sh/chart: remote-runner-0.1.0
+                  app.kubernetes.io/name: runner
+                  helm.sh/chart: runner-0.1.0
                   app.kubernetes.io/instance: my-release
                   app.kubernetes.io/managed-by: Helm
               data:
                 {}
               ---
-              # Source: remote-runner/templates/service-account.yaml
+              # Source: runner/templates/service-account.yaml
               apiVersion: rbac.authorization.k8s.io/v1
               kind: Role
               metadata:
-                name: ${remoteRunnerName}
+                name: ${runnerName}
                 namespace: "${namespace}"
                 labels:
-                  app.kubernetes.io/name: remote-runner
-                  helm.sh/chart: remote-runner-0.1.0
+                  app.kubernetes.io/name: runner
+                  helm.sh/chart: runner-0.1.0
                   app.kubernetes.io/instance: my-release
                   app.kubernetes.io/managed-by: Helm
               rules:
@@ -199,84 +205,84 @@ spec:
                     - create
                     - delete
               ---
-              # Source: remote-runner/templates/service-account.yaml
+              # Source: runner/templates/service-account.yaml
               kind: RoleBinding
               apiVersion: rbac.authorization.k8s.io/v1
               metadata:
-                name: ${remoteRunnerName}
+                name: ${runnerName}
                 namespace: "${namespace}"
                 labels:
-                  app.kubernetes.io/name: remote-runner
-                  helm.sh/chart: remote-runner-0.1.0
+                  app.kubernetes.io/name: runner
+                  helm.sh/chart: runner-0.1.0
                   app.kubernetes.io/instance: my-release
                   app.kubernetes.io/managed-by: Helm
               roleRef:
                 kind: Role
-                name: ${remoteRunnerName}
+                name: ${runnerName}
                 apiGroup: rbac.authorization.k8s.io
               subjects:
                 - kind: ServiceAccount
-                  name: ${remoteRunnerName}
+                  name: ${runnerName}
                   namespace: "${namespace}"
               ---
-              # Source: remote-runner/templates/statefulset.yaml
+              # Source: runner/templates/statefulset.yaml
               apiVersion: v1
               kind: Service
               metadata:
-                name: ${remoteRunnerName}-headless
+                name: ${runnerName}-headless
                 namespace: "${namespace}"
                 labels:
-                  app.kubernetes.io/name: remote-runner
-                  helm.sh/chart: remote-runner-0.1.0
+                  app.kubernetes.io/name: runner
+                  helm.sh/chart: runner-0.1.0
                   app.kubernetes.io/instance: my-release
                   app.kubernetes.io/managed-by: Helm
               spec:
                 clusterIP: None
                 selector:
-                  app: ${remoteRunnerName}
+                  app: ${runnerName}
               ---
-              # Source: remote-runner/templates/statefulset.yaml
+              # Source: runner/templates/statefulset.yaml
               apiVersion: apps/v1
               kind: StatefulSet
               metadata:
-                name: ${remoteRunnerName}
+                name: ${runnerName}
                 namespace: "${namespace}"
                 labels:
-                  app.kubernetes.io/name: remote-runner
-                  helm.sh/chart: remote-runner-0.1.0
+                  app.kubernetes.io/name: runner
+                  helm.sh/chart: runner-0.1.0
                   app.kubernetes.io/instance: my-release
                   app.kubernetes.io/managed-by: Helm
               spec:
-                serviceName: ${remoteRunnerName}-headless
+                serviceName: ${runnerName}-headless
                 podManagementPolicy: Parallel
                 replicas: ${replicas}
                 updateStrategy:
                   type: RollingUpdate
                 selector:
                   matchLabels:
-                    app.kubernetes.io/name: remote-runner
+                    app.kubernetes.io/name: runner
                     app.kubernetes.io/instance: my-release
-                    app: ${remoteRunnerName}
+                    app: ${runnerName}
                 template:
                   metadata:
                     labels:
-                      app.kubernetes.io/name: remote-runner
-                      helm.sh/chart: remote-runner-0.1.0
+                      app.kubernetes.io/name: runner
+                      helm.sh/chart: runner-0.1.0
                       app.kubernetes.io/instance: my-release
                       app.kubernetes.io/managed-by: Helm
-                      app: ${remoteRunnerName}
+                      app: ${runnerName}
                     annotations:
                       checksum/config: a8c057bd11fa913d3aee52c40a3a4892c51ff6cf1a4e4171b2fb89a29268bf68
                       checksum/secret: b758b5aa5a17777f33478760a9a9d6074dedc3d0b892ee6a8f13b46ab3c635d2
                   spec:
-                    serviceAccountName: ${remoteRunnerName}
+                    serviceAccountName: ${runnerName}
                     affinity:
                       podAntiAffinity:
                         preferredDuringSchedulingIgnoredDuringExecution:
                           - podAffinityTerm:
                               labelSelector:
                                 matchLabels:
-                                  app.kubernetes.io/name: remote-runner
+                                  app.kubernetes.io/name: runner
                                   app.kubernetes.io/instance: my-release
                               namespaces:
                                 - "${namespace}"
@@ -286,8 +292,8 @@ spec:
                     hostNetwork: false
                     terminationGracePeriodSeconds: 200
                     containers:
-                      - name: remote-runner
-                        image: "${remoteRunnerImage}"
+                      - name: runner
+                        image: "${runnerImage}"
                         imagePullPolicy: "IfNotPresent"
                         env:
                           - name: RELEASE_RUNNER_NAME
@@ -295,13 +301,13 @@ spec:
                               fieldRef:
                                 fieldPath: metadata.name
                           - name: RELEASE_RUNNER_KUBERNETES_SERVICE_NAME
-                            value: ${remoteRunnerName}-headless
+                            value: ${runnerName}-headless
                           - name: RELEASE_RUNNER_RELEASE_URL
                             value: "${releaseUrl}"
                           - name: RELEASE_RUNNER_TOKEN
                             valueFrom:
                               secretKeyRef:
-                                name: ${remoteRunnerName}-registration-token
+                                name: ${runnerName}-registration-token
                                 key: token
                           - name: RELEASE_RUNNER_CAPABILITIES
                             value: remote,remote-script,container,k8s
@@ -315,7 +321,7 @@ spec:
                             value: "/workspace/db/runner-store.db"
                         envFrom:
                           - configMapRef:
-                              name: ${remoteRunnerName}-env-config
+                              name: ${runnerName}-env-config
                               optional: true
                         livenessProbe:
                           httpGet:
@@ -338,44 +344,57 @@ spec:
                           requests:
                             cpu: "0.5"
                             memory: 512Mi
+          - name: Check if runner is installed
+            type: kubernetes.CheckResourceReadiness
+            description: |-
+              Checking if runner installation was successful.
+              
+              This may take a couple of minutes.
+            variableMapping:
+              server: "${kubernetesApiServer}"
+            capabilities:
+              - remote
             namespace: "${namespace}"
+            kind: StatefulSet
+            resourceName: "${runnerName}"
+            timeout: 120
     kind: WORKFLOW
     categories:
-      - Remote Runner installation
+      - Digital.ai Release runner installation
     variables:
       - type: xlrelease.StringVariable
         key: namespace
         requiresValue: false
         showOnReleaseStart: false
         label: Namespace
-        description: Kubernetes namespace where Remote Runner will be installed
+        description: Kubernetes namespace where Digital.ai Release runner will be installed
         value: digitalai
       - type: xlrelease.StringVariable
-        key: remoteRunnerImage
+        key: runnerImage
         requiresValue: false
         showOnReleaseStart: false
-        label: Remote Runner image
-        description: Remote Runner docker image to be used
+        label: Digital.ai Release runner image
+        description: Digital.ai Release runner docker image to be used
         value: xebialabs/release-remote-runner:23.3.0
       - type: xlrelease.StringVariable
         key: releaseUrl
         requiresValue: false
         showOnReleaseStart: false
         label: Digital.ai Release URL
-        description: Digital.ai Release URL for Remote Runner to register
+        description: Digital.ai Release URL for Digital.ai Release runner to register
       - type: xlrelease.StringVariable
         key: token
         requiresValue: false
         showOnReleaseStart: false
-        label: Remote Runner token
-        description: The Remote Runner uses this token to call the Digital.ai Release
-          REST API
+        label: Digital.ai Release runner token
+        description: Digital.ai Release runner uses this token to call the Digital.ai
+          Release REST API
       - type: xlrelease.ReferenceVariable
         key: kubernetesApiServer
         requiresValue: false
         showOnReleaseStart: false
         label: Kubernetes API server
-        description: Kubernetes API server to install Remote Runner
+        description: Kubernetes API server to install Digital.ai Release runner
         referencedType: kubernetes.APIServer
       - type: xlrelease.MapStringStringVariable
         key: namespaceExistsResponse
@@ -384,21 +403,21 @@ spec:
         label: Command Response
         description: Command Response
       - type: xlrelease.StringVariable
-        key: remoteRunnerName
+        key: runnerName
         requiresValue: false
         showOnReleaseStart: false
-        label: Remote Runner name
-        description: "Remote Runner name to register on Digital.ai Release. Also, this\
-      \ is the name of all Remote Runner related services in Kubernetes cluster. Consider\
-      \ choosing a name without whitespaces, using only letters, numbers, or hyphens,\
-      \ to ensure compatibility and simplicity across Kubernetes cluster."
-        value: remote-runner
+        label: Digital.ai Release runner name
+        description: "Digital.ai Release runner name to register on Digital.ai Release.\
+      \ Also, this is the name of all runner related services in Kubernetes cluster.\
+      \ Consider choosing a name without whitespaces, using only letters, numbers,\
+      \ or hyphens, to ensure compatibility and simplicity across Kubernetes cluster."
+        value: runner
       - type: xlrelease.IntegerVariable
         key: replicas
         requiresValue: false
         showOnReleaseStart: false
         label: Replicas
-        description: Number of Remote Runner replicas
+        description: Number of Digital.ai Release runner replicas
         value: 1
     allowPasswordsInAllFields: true
     disableNotifications: true
