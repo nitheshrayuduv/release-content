@@ -7,5 +7,6 @@ spec:
   - Workflow_Azure Application setup with Digital.ai Deploy to create Azure resource
     groups.yaml
   - Workflow_GCP Application setup with Digital.ai Deploy for virtual machine instance.yaml
+  - Workflow_Helm Application Setup with Digital.ai Deploy.yaml
   - Workflow_Tomcat DataSource Setup on SSH Host with Digital.ai Deploy.yaml
   - Workflow_Websphere JaasAlias setup with Digital.ai Deploy.yaml
