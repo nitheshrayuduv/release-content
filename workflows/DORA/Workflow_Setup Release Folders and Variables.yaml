@@ -1,0 +1,99 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  home: Digital.ai - Official/Workflows/DORA
+spec:
+- template: Setup Release Folders and Variables
+  description: Setup Folders in Digital.ai Release and create variables within the
+    folders.
+  scheduledStartDate: 2024-02-20T03:30:00Z
+  phases:
+  - phase: Setup folders and variables
+    tasks:
+    - name: Specify RunAs user
+      type: xlrelease.UserInputTask
+      description: Specify the Run as user credentials which will be used to run the
+        workflow. All automated tasks will be run as this user.
+      variables:
+      - runAsUsername
+      - runAsUserPassword
+    - name: Specify Folder Names and Variables
+      type: xlrelease.UserInputTask
+      description: Specify the folder names and the varibles to be created within
+        them.
+      variables:
+      - foldersToCreate
+      - folderVariablesMap
+    - name: Create Folders and Variables
+      type: xlrelease.ScriptTask
+      description: This automated script task creates the specified folders one within
+        the other in the given sequence and also creates the list of variables specified
+        against each folder.
+      script: |-
+        from com.xebialabs.xlrelease.domain.folder import Folder
+        from com.xebialabs.xlrelease.api.v1.forms import Variable
+        import java.lang.RuntimeException
+        import json
+
+        parentFolderId = "Applications"
+        folder_var_map = ${folderVariablesMap}
+
+        folders = "${foldersToCreate}".split("/")
+
+        for folderName in folders:
+          folder = Folder()
+          folder.setTitle(folderName)
+          parentFolderId = folderApi.addFolder(parentFolderId, folder)
+          parentFolderId = str(parentFolderId.id)
+          print("Folder created:%s"%(folderName))
+
+          if folderName in folder_var_map:
+            var_json_str = folder_var_map[folderName]
+            variable_list = json.loads(var_json_str)
+            for var_instance in variable_list:
+              key = var_instance['key']
+              if not key.startswith("folder."):
+                key = "folder.{}".format(var_instance['key'])
+              var_obj = Variable(key, var_instance['value'], False)
+              var_id = folderApi.createVariable(parentFolderId, var_obj)
+              print("Variable created:%s"%(key))
+  kind: WORKFLOW
+  categories:
+  - Application onboarding
+  variables:
+  - type: xlrelease.StringVariable
+    key: runAsUsername
+    showOnReleaseStart: false
+    label: Run automated tasks as user
+    description: Run all automated tasks in this workflow as user
+  - type: xlrelease.MapStringStringVariable
+    key: folderVariablesMap
+    showOnReleaseStart: false
+    label: Folder Variables
+    description: "Folder names against a JSON list of variable details. [{\"key\"\
+      :\"name1\", \"value\":\"value1\"}, [{\"key\":\"name2\", \"value\":\"value2\"\
+      }]"
+    value:
+      Folder1: "[{\"key\":\"var1\", \"value\":\"value1\"}]"
+  - type: xlrelease.PasswordStringVariable
+    key: runAsUserPassword
+    showOnReleaseStart: false
+    label: Password
+    description: Password for automated tasks user
+  - type: xlrelease.StringVariable
+    key: foldersToCreate
+    showOnReleaseStart: false
+    label: Folders to create
+    description: Folders will be created one within the other.
+    value: Folder1/Folder2/Folder3
+  disableNotifications: true
+  scriptUsername: "${runAsUsername}"
+  variableMapping:
+    scriptUserPassword: "${runAsUserPassword}"
+  author: Digital.ai
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/svg+xml
+    file: !file "template-logo/digital-ai-release.svg"
+  defaultTargetFolder: Digital.ai - Official/Workflow Executions
