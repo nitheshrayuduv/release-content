@@ -3,5 +3,4 @@ apiVersion: xl-release/v1
 kind: Import
 spec:
   imports:
-  - Permissions.yaml
   - Workflow_Create an AWS Lambda Function using S3 zip file.yaml

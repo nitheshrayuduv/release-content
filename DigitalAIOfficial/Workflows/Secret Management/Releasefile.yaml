@@ -3,7 +3,6 @@ apiVersion: xl-release/v1
 kind: Import
 spec:
   imports:
-  - Permissions.yaml
   - Workflow_Create Secret in AWS SecretsManager.yaml
   - Workflow_Create Secret in Azure KeyVault.yaml
   - Workflow_Delete Secret in AWS SecretsManager.yaml

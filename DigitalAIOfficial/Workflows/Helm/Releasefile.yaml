@@ -3,5 +3,4 @@ apiVersion: xl-release/v1
 kind: Import
 spec:
   imports:
-  - Permissions.yaml
   - Workflow_Install and Uninstall the Application using Helm.yaml
