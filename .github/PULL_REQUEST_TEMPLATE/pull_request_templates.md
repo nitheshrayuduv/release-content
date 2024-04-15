@@ -6,8 +6,6 @@
 
 **Review**
 
-- [ ] Check for proper folder structure and versioning settings if a new subfolder is added under templates.
-- [ ] Ensure `autoImport` is set to `false` for the templates folder versioning settings.
 - [ ] If adding a new template, update the `Releasefile.yaml` for proper Digital.ai Release import.
 - [ ] Avoid using community plugins.
 - [ ] Do not use global or folder variables.
@@ -26,4 +24,4 @@
 **PR Merge Activity**
 
 - [ ] Squash and merge the PR.
-- [ ] After the PR is merged, make sure to push the appropriate tags on the main branch to reflect the changes in customer installations.
+- [ ] After the PR is merged, make sure to push the appropriate tags on the target branch to reflect the changes in customer installations.

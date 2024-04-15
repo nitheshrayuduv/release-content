@@ -6,8 +6,6 @@
 
 **Review**
 
-- [ ] Check for proper folder structure and versioning settings if a new subfolder is added under workflows.
-- [ ] Ensure `autoImport` is set to `true` for the workflows folder versioning settings.
 - [ ] If adding a new workflow, update the `Releasefile.yaml` for proper Digital.ai Release import.
 - [ ] Avoid using community plugins.
 - [ ] Do not use global or folder variables.
@@ -25,4 +23,4 @@
 **PR Merge Activity**
 
 - [ ] Squash and merge the PR.
-- [ ] After the PR is merged, make sure to push the appropriate tags on the main branch to reflect the changes in customer installations.
+- [ ] After the PR is merged, make sure to push the appropriate tags on the target branch to reflect the changes in customer installations.
