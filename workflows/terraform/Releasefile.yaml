@@ -1,7 +1,0 @@
----
-apiVersion: xl-release/v1
-kind: Import
-spec:
-  imports:
-  - Workflow_Create update or destroy infrastructure in the cloud using
-    Terraform.yaml

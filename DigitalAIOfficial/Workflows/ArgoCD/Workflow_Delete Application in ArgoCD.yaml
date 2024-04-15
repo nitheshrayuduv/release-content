@@ -1,0 +1,65 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  path: Workflows/ArgoCD
+  home: Digital.ai - Official/Workflows/ArgoCD
+spec:
+- template: Delete Application in ArgoCD
+  scheduledStartDate: 2023-04-27T18:30:00+05:30
+  dueDate: 2023-04-27T19:30:00+05:30
+  phases:
+  - phase: Delete Application in ArgoCD
+    tasks:
+    - name: Application Details
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      variables:
+      - projectDetails
+      - argoCDApiServer
+      - applicationName
+    - name: Delete Application in ArgoCD
+      type: argocd.RemoveApplication
+      variableMapping:
+        server: "${argoCDApiServer}"
+      capabilities:
+      - remote
+      applicationName: "${applicationName}"
+    - name: Delete Application in Release
+      type: managedApplications.DeleteApplication
+    color: '#3d6c9e'
+  kind: WORKFLOW
+  categories:
+  - Application onboarding
+  variables:
+  - type: xlrelease.StringVariable
+    key: applicationName
+    showOnReleaseStart: false
+    label: Application Name
+    description: Application name to delete from ArgoCD
+  - type: xlrelease.StringVariable
+    key: projectDetails
+    showOnReleaseStart: false
+    label: Project Details
+    description: Name of the project in ArgoCD where the Application is mapped to
+    value: default
+  - type: xlrelease.ReferenceVariable
+    key: argoCDApiServer
+    showOnReleaseStart: false
+    label: ArgoCD API server
+    description: ArgoCD Api Server connection details
+    referencedType: argocd.APIServer
+  - type: xlrelease.StringVariable
+    key: managedApplicationId
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Application ID
+    description: "Application ID in Digital.ai Release. For autocomplete, if folder\
+      \ is empty, release/workflow execution folder will be used"
+  disableNotifications: true
+  author: Digital.ai
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/png
+    file: !file "template-logo/01d81f95a92b5ebbae77081f9988c520aa79d73e/argo-icon.png"
+  defaultTargetFolder: Digital.ai - Official/Workflow Executions

@@ -1,0 +1,497 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  path: Workflows/Digital.ai Deploy
+  home: Digital.ai - Official/Workflows/Digital.ai Deploy
+spec:
+- template: Helm Application Setup with Digital.ai Deploy
+  description: "Easily create a Helm application in Digital.ai Deploy that can be\
+    \ deployed to a target Kubernetes Cluster, including its respective environment\
+    \ and infrastructure setup."
+  scheduledStartDate: 2023-03-23T09:00:00+05:30
+  dueDate: 2023-03-23T10:00:00+05:30
+  phases:
+  - phase: Setup Infra and Env
+    tasks:
+    - name: Specify Run As User
+      type: xlrelease.UserInputTask
+      description: Specify the Run As user. All automated tasks in the workflow will
+        be run as the specified user.
+      variables:
+      - runAsUsername
+      - runAsUserPassword
+    - name: Specify Deploy Server Details
+      type: xlrelease.UserInputTask
+      description: Select the Digital.ai Deploy Server Connection onto which the Helm
+        application has to be created. You can create a new connection if you have
+        not created one.
+      variables:
+      - deployServer
+    - name: Specify Environment Name
+      type: xlrelease.UserInputTask
+      description: Specify the name of the environment CI to be created in the Digital.ai
+        Deploy Server.
+      variables:
+      - environmentName
+    - name: Create Environment
+      type: deploy.CreateCI
+      description: Creates an environment CI with the given name in the Digital.ai
+        Deploy Server.
+      variableMapping:
+        server: "${deployServer}"
+      capabilities:
+      - remote
+      ciID: "Environments/${environmentName}"
+      ciType: udm.Environment
+      jsonDescriptor: "{}"
+    - name: Specify Helm Client Host Parameters
+      type: xlrelease.UserInputTask
+      description: Specify the SSH connection details to the host where the Helm Client
+        installation resides.
+      variables:
+      - hostIdentifier
+      - sudoUsername
+      - os
+      - address
+      - port
+      - sshUsername
+      - sshPrivatekey
+    - name: Configure Helm Client Host
+      type: deploy.CreateCI
+      description: Creates an Overthere SSH Host CI in the Digital.ai Deploy Server
+        with the details specified in the previous step.
+      variableMapping:
+        server: "${deployServer}"
+      capabilities:
+      - remote
+      ciID: "Infrastructure/${hostIdentifier}"
+      ciType: overthere.SshHost
+      jsonDescriptor: |-
+        {
+            "stagingDirectoryPath":"",
+            "sudoUsername":"${sudoUsername}",
+            "suUsername":"",
+            "suPassword":"",
+            "os":"${os}",
+            "connectionType":"SUDO",
+            "address":"${address}",
+            "port":"${port}",
+            "username":"${sshUsername}",
+            "password":"",
+            "privateKeyFile":"${sshPrivatekey}",
+            "passphrase":""
+        }
+    - name: Check Helm Client Host Connection
+      type: deploy.ControlTask
+      description: Runs a Check Connection control task on the created SSH host CI
+        in the Digital.ai Deploy server to validate the specified credentials.
+      variableMapping:
+        server: "${deployServer}"
+      capabilities:
+      - remote
+      ciId: "Infrastructure/${hostIdentifier}"
+      taskName: checkConnection
+      numberOfContinueRetrials: 0
+      pollingInterval: 10
+      numberOfPollingTrials: 0
+      displayStepLogs: true
+      connectionRetries: 10
+    - name: Specify Helm Client Configuration Details
+      type: xlrelease.UserInputTask
+      description: Specify the configuration details for the Helm client.
+      variables:
+      - helmClientName
+      - helmClientInstallationPath
+      - kubeConfigPath
+    - name: Configure Helm Client in Deploy
+      type: deploy.CreateCI
+      description: Creates an Helm Client CI in the Digital.ai Deploy Server with
+        the details specified in the previous step.
+      variableMapping:
+        server: "${deployServer}"
+      capabilities:
+      - remote
+      ciID: "Infrastructure/${hostIdentifier}/${helmClientName}"
+      ciType: helm.Client
+      jsonDescriptor: |-
+        {
+            "home":"${helmClientInstallationPath}",
+            "kubeConfig":"${kubeConfigPath}"
+        }
+    - name: Specify Kubernetes Cluster Details
+      type: xlrelease.UserInputTask
+      description: Specify the configuration details of the Kubernetes cluster CI
+        to be created in Digital.ai Deploy server.
+      variables:
+      - kubeMasterName
+      - apiServerUrl
+      - caCertificate
+      - skipTLS
+      - tlsCertificate
+      - tlsPrivateKey
+      - k8sServiceAccountToken
+    - name: Configure Kubernetes Master
+      type: deploy.CreateCI
+      description: Creates a Kubernetes Master CI in the Digital.ai Deploy Server
+        with the details specified in the previous step.
+      variableMapping:
+        server: "${deployServer}"
+      capabilities:
+      - remote
+      ciID: "Infrastructure/${kubeMasterName}"
+      ciType: k8s.Master
+      jsonDescriptor: |-
+        {
+            "tlsCert": "${tlsCertificate}",
+            "tlsPrivateKey": "${tlsPrivateKey}",
+            "apiServerURL": "${apiServerUrl}" ,
+            "skipTLS": "${skipTLS}",
+            "caCert": "${caCertificate}" ,
+            "helmClient": "Infrastructure/${hostIdentifier}/${helmClientName}"
+        }
+    - name: Update K8s Master token
+      type: deploy.UpdateCIPropertyWithSecretValue
+      variableMapping:
+        propertyValue: "${k8sServiceAccountToken}"
+        server: "${deployServer}"
+      capabilities:
+      - remote
+      ciID: "Infrastructure/${kubeMasterName}"
+      ciProperty: token
+    - name: Check Connection to K8s Master
+      type: deploy.ControlTask
+      description: Runs a Check Status control task on the created Tomcat server CI
+        in the Digital.ai Deploy server to validate the specified credentials.
+      variableMapping:
+        server: "${deployServer}"
+      capabilities:
+      - remote
+      ciId: "Infrastructure/${kubeMasterName}"
+      taskName: checkConnection
+      numberOfContinueRetrials: 0
+      pollingInterval: 10
+      numberOfPollingTrials: 0
+      displayStepLogs: true
+      connectionRetries: 10
+    - name: Specify Kubernetes Namespace
+      type: xlrelease.UserInputTask
+      description: Specify a name for the Kubernetes namespace CI to be created in
+        Digital.ai Deploy server.
+      variables:
+      - kubeNamespace
+    - name: Configure Kubernetes Namespace
+      type: deploy.CreateCI
+      description: Creates a Kubernetes Namespace CI in the Digital.ai Deploy Server
+        with the details specified in the previous step.
+      variableMapping:
+        server: "${deployServer}"
+      capabilities:
+      - remote
+      ciID: "Infrastructure/${kubeMasterName}/${kubeNamespace}"
+      ciType: k8s.Namespace
+      jsonDescriptor: "{}"
+      addToEnvironment: true
+      envID: "Environments/${environmentName}"
+  - phase: Setup Application
+    tasks:
+    - name: Specify Application Name
+      type: xlrelease.UserInputTask
+      description: Specify the name of the application to be created in the Digital.ai
+        Deploy server.
+      variables:
+      - applicationName
+    - name: Setup Application
+      type: deploy.CreateCI
+      description: Creates an application with the specified name in the Digital.ai
+        Deploy server.
+      variableMapping:
+        server: "${deployServer}"
+      capabilities:
+      - remote
+      ciID: "Applications/${applicationName}"
+      ciType: udm.Application
+      jsonDescriptor: "{}"
+    - name: Specify Package Name
+      type: xlrelease.UserInputTask
+      description: Specify a package name to be created within the application created
+        in Digital.ai Deploy server in the previous step.
+      variables:
+      - packageName
+    - name: Create Deployment Package
+      type: deploy.CreateCI
+      description: Creates a deployment package with the specfied name in the application
+        created in Digital.ai Deploy server.
+      variableMapping:
+        server: "${deployServer}"
+      capabilities:
+      - remote
+      ciID: "Applications/${applicationName}/1.0"
+      ciType: udm.DeploymentPackage
+      jsonDescriptor: "{}"
+    - name: Specify Helm Chart Details
+      type: xlrelease.UserInputTask
+      description: "Specify the Helm chart details, which will be used to create a\
+        \ Helm chart CI in Digital.ai Deploy server."
+      variables:
+      - helmChartCiName
+      - helmChartName
+      - chartVersion
+      - repositoryUrl
+      - addRepository
+      - updateRepositories
+      - testRelease
+    - name: Create Helm Chart CI in Digital.ai Deploy
+      type: deploy.CreateCI
+      description: Creates a Helm chart CI in the Digital.ai Deploy server with the
+        details specified in the previous step.
+      variableMapping:
+        server: "${deployServer}"
+      capabilities:
+      - remote
+      ciID: "Applications/${applicationName}/${packageName}/${helmChartCiName}"
+      ciType: helm.Chart
+      jsonDescriptor: |-
+        {
+            "chartName": "${helmChartName}",
+            "chartVersion": "${chartVersion}",
+            "testRelease": "${testRelease}",
+            "repositoryUrl": "${repositoryUrl}",
+            "addRepository": "${addRepository}",
+            "updateRepositories": "${updateRepositories}"
+        }
+    - name: Add Managed Application
+      type: xlrelease.ScriptTask
+      description: Adds the created Azure Resource Group application to the Digital.ai
+        Release managed application list.
+      script: |-
+        from com.xebialabs.xlrelease.api.v1.views import ManagedApplicationView
+        from com.xebialabs.xlrelease.api.v1.views import ConnectionServerView
+        from java.util import Date
+        from java.text import SimpleDateFormat
+        import datetime
+
+        parsedDate = datetime.datetime.now()
+
+        requestBody = ManagedApplicationView()
+        requestBody.applicationName = "${applicationName}"
+        requestBody.managedBy = "Digital.ai Deploy"
+        requestBody.dateCreated = parsedDate
+        requestBody.environmentTag = "${environmentName}"
+        requestBody.applicationReference = "${applicationName}"
+
+        connectionServer = ConnectionServerView('${deployServer}', '', '', '')
+        requestBody.connectionServer = connectionServer
+
+        res = managedApplicationApi.addManagedApplication(requestBody)
+    color: '#3d6c9e'
+  kind: WORKFLOW
+  categories:
+  - Application onboarding
+  - Cloud & Container
+  - Application Life Cycle Management
+  - Serverless
+  variables:
+  - type: xlrelease.StringVariable
+    key: environmentName
+    showOnReleaseStart: false
+    label: Environment Name
+    description: Name of the environment CI in Deploy
+    value: helm-env
+  - type: xlrelease.StringVariable
+    key: hostIdentifier
+    showOnReleaseStart: false
+    label: Host Identifier
+    description: Name of the SSH host CI to be created in Digital.ai Deploy server
+    value: helmclient-host
+  - type: xlrelease.StringVariable
+    key: address
+    label: SSH host address
+    description: SSH host address
+    value: 1.2.3.4
+  - type: xlrelease.StringVariable
+    key: os
+    showOnReleaseStart: false
+    label: OS
+    description: UNIX|WINDOWS|ZOS
+    value: UNIX
+  - type: xlrelease.StringVariable
+    key: port
+    showOnReleaseStart: false
+    label: SSH port
+    description: SSH port
+    value: "22"
+  - type: xlrelease.StringVariable
+    key: sshPrivatekey
+    showOnReleaseStart: false
+    label: Private Key
+    description: Path to the SSH key file
+    value: private-key-path
+  - type: xlrelease.StringVariable
+    key: sshUsername
+    label: SSH Username
+    description: SSH username
+    value: ssh-username
+  - type: xlrelease.StringVariable
+    key: sudoUsername
+    showOnReleaseStart: false
+    label: SUDO username
+    description: SUDO username
+    value: sudo-username
+  - type: xlrelease.StringVariable
+    key: applicationName
+    showOnReleaseStart: false
+    label: Application Name
+    description: Name of the application CI in Deploy
+    value: helm-app
+  - type: xlrelease.StringVariable
+    key: packageName
+    showOnReleaseStart: false
+    label: Package Name
+    description: Name of the application package in Deploy
+    value: "1.0"
+  - type: xlrelease.StringVariable
+    key: helmClientInstallationPath
+    showOnReleaseStart: false
+    label: Helm Client Installation Path
+    description: Helm Client installation home directory
+    value: /usr/local/bin
+  - type: xlrelease.StringVariable
+    key: helmClientName
+    description: Name of Helm Client CI in Deploy
+    value: helm-client
+  - type: xlrelease.StringVariable
+    key: virtualHostName
+    description: The tomacat virtual hostname in Deploy
+    value: virtual-host
+  - type: xlrelease.StringVariable
+    key: datasourceName
+    description: The name of the datasource to create
+    value: sample-datasource
+  - type: xlrelease.ReferenceVariable
+    key: deployServer
+    showOnReleaseStart: false
+    label: Deploy Server
+    description: Connection to the Deploy Server
+    referencedType: digitalai.DeployServer
+  - type: xlrelease.PasswordStringVariable
+    key: runAsUserPassword
+    showOnReleaseStart: false
+    label: Password
+    description: Password for automated tasks user
+  - type: xlrelease.StringVariable
+    key: runAsUsername
+    showOnReleaseStart: false
+    label: Run automated tasks as user
+    description: Run all automated tasks in this workflow as user
+  - type: xlrelease.StringVariable
+    key: kubeConfigPath
+    requiresValue: false
+    showOnReleaseStart: false
+    label: KubeConfig Path
+    description: Kubeconfig Path
+  - type: xlrelease.StringVariable
+    key: apiServerUrl
+    showOnReleaseStart: false
+    label: API ServerUrl
+    description: URL for RESTful interface provided by API Server
+  - type: xlrelease.BooleanVariable
+    key: skipTLS
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Skip TLS
+    description: Do not verify using TLS/SSL
+  - type: xlrelease.StringVariable
+    key: caCertificate
+    requiresValue: false
+    showOnReleaseStart: false
+    label: CA Certificate
+    description: Certification authority certificate
+  - type: xlrelease.StringVariable
+    key: tlsCertificate
+    requiresValue: false
+    showOnReleaseStart: false
+    label: TLS Certificate
+    description: TLS certificate for master server
+  - type: xlrelease.StringVariable
+    key: tlsPrivateKey
+    requiresValue: false
+    showOnReleaseStart: false
+    label: TLS Private Key
+    description: TLS private key for master server
+  - type: xlrelease.StringVariable
+    key: serviceAccountToken
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Service Account Token
+    description: Service account token
+  - type: xlrelease.StringVariable
+    key: kubeMasterName
+    showOnReleaseStart: false
+    label: Kubernetes Master CI Name
+    description: Kubernetes Master CI Name
+    value: kubernetes-master
+  - type: xlrelease.StringVariable
+    key: kubeNamespace
+    showOnReleaseStart: false
+    label: Kubernetes Namespace
+    description: Kubernetes Namspace
+  - type: xlrelease.StringVariable
+    key: helmChartCiName
+    showOnReleaseStart: false
+    label: Helm Chart CI Name
+    description: Helm Chart CI Name
+    value: sample-chart
+  - type: xlrelease.StringVariable
+    key: helmChartName
+    showOnReleaseStart: false
+    label: Helm Chart Name
+    description: Helm Chart CI Name (Repo name/chart name)
+    value: bitnami/redis
+  - type: xlrelease.StringVariable
+    key: chartVersion
+    showOnReleaseStart: false
+    label: Chart Version
+    description: Helm chart version
+    value: 19.0.1
+  - type: xlrelease.StringVariable
+    key: repositoryUrl
+    showOnReleaseStart: false
+    label: Repository URL
+    description: Helm repository URL
+    value: https://charts.bitnami.com/bitnami
+  - type: xlrelease.BooleanVariable
+    key: testRelease
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Test Release
+    description: Test Release
+    value: true
+  - type: xlrelease.BooleanVariable
+    key: addRepository
+    showOnReleaseStart: false
+    label: Add Repository
+    description: Add repository
+    value: true
+  - type: xlrelease.BooleanVariable
+    key: updateRepositories
+    showOnReleaseStart: false
+    label: Update Repositories
+    description: Update Repositories
+    value: true
+  - type: xlrelease.PasswordStringVariable
+    key: k8sServiceAccountToken
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Service Account Token
+    description: Service Account Token
+  disableNotifications: true
+  scriptUsername: "${runAsUsername}"
+  variableMapping:
+    scriptUserPassword: "${runAsUserPassword}"
+  author: Digital.ai
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/svg+xml
+    file: !file "template-logo/1336d33f613cec76ae8d02f10c5e6f34da6ac0a7/xld-helm-plugin.svg"
+  defaultTargetFolder: Digital.ai - Official/Workflow Executions

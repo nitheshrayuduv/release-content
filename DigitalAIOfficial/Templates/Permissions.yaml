@@ -1,0 +1,21 @@
+---
+apiVersion: xl-release/v1
+kind: Permissions
+metadata:
+  path: Templates
+  home: Digital.ai - Official/Templates
+spec:
+- directory: "."
+  teams:
+  - name: Template Owner
+  - name: Viewer
+    roles:
+    - Authenticated Users
+    permissions:
+    - folder#view
+    - release#start
+    - release#view
+    - template#create_release
+    - template#view
+  - name: Release Admin
+  - name: Folder Owner

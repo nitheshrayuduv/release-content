@@ -1,0 +1,59 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  path: Workflows/Azure
+  home: Digital.ai - Official/Workflows/Azure
+spec:
+- template: List Azure Container Registry Images
+  description: Lists the images present in an Azure Container Registry.
+  scheduledStartDate: 2023-09-20T09:00:00+05:30
+  dueDate: 2023-09-20T10:00:00+05:30
+  phases:
+  - phase: List Images
+    tasks:
+    - name: Azure Connection
+      type: xlrelease.UserInputTask
+      description: Select the Azure Connection or create a new connection if you have
+        not created one.
+      variables:
+      - azureConnection
+    - name: Specify the Registry Name
+      type: xlrelease.UserInputTask
+      description: Specify the Registry Name
+      variables:
+      - registryName
+    - name: List Images in Registry
+      type: containerAzure.RunCommand
+      description: Lists Images in specfied Registry
+      variableMapping:
+        azureConfiguration: "${azureConnection}"
+      capabilities:
+      - remote
+      command: "acr repository list --name ${registryName}"
+  kind: WORKFLOW
+  categories:
+  - Infrastructure Service
+  variables:
+  - type: xlrelease.ReferenceVariable
+    key: azureConnection
+    showOnReleaseStart: false
+    label: Azure Connection
+    description: Connection to Azure
+    referencedType: containerAzure.configuration
+  - type: xlrelease.StringVariable
+    key: command
+    showOnReleaseStart: false
+    label: Command to List ACR Images
+  - type: xlrelease.StringVariable
+    key: registryName
+    showOnReleaseStart: false
+    label: Registry Name
+    description: Name of the Registry
+  disableNotifications: true
+  author: Digital.ai
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/png
+    file: !file "template-logo/cf55ce7b37a3127d605482aabbf8742fb59c220a/release-azure-integration.png"
+  defaultTargetFolder: Digital.ai - Official/Workflow Executions
