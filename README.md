@@ -14,15 +14,16 @@ Welcome to the official Digital.ai Release content repository! This repository i
 
 ## Contributing
 
-We welcome contributions from the community! If you have a release template or workflow template that you'd like to share or improve, please follow these steps:
+We highly value contributions from our community! If you have a release template or workflow template that you'd like to share or enhance, we encourage you to follow these simple steps:
 
 1. Fork this repository to your GitHub account.
-2. Create a new branch for your changes: `git checkout -b feature/new-template`.
-3. Make your changes and commit them: `git commit -m "Add new template"`.
-4. Push your changes to your GitHub fork: `git push origin feature/new-template`.
-5. Create a pull request (PR) against this repository.
+2. Switch to the relevant release branch: `git checkout release/24.1.x`.
+3. Create a new branch for your modifications: `git checkout -b feature/new-template`.
+4. Implement your changes and commit them: `git commit -m "Add new template"`.
+5. Push your changes to your GitHub fork: `git push origin feature/new-template`.
+6. Open a pull request (PR) against this repository, targeting the appropriate release branch.
 
-Our team will review your PR and work with you to merge it into the official content.
+Our dedicated team will carefully review your PR and collaborate with you to incorporate it into the official content. Your contributions are greatly appreciated!
 
 ## How to Release
 
