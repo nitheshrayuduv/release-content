@@ -19,41 +19,11 @@ spec:
     exportDashboards: false
     exportNotifications: false
     versioningStyle: multipleFilesPerCIType
-- directory: Azure
-  children:
-  - type: xlrelease.FolderVersioningSettings
-    gitConnection: Digital.ai Official Repository
-    scmPath: workflows/azure
-    branch: main
-    autoImport: true
-    exportTemplates: false
-    exportPatterns: false
-    exportVariables: false
-    exportTriggers: false
-    exportConfiguration: false
-    exportDashboards: false
-    exportNotifications: false
-    versioningStyle: multipleFilesPerCIType
 - directory: Digital.ai Deploy
   children:
   - type: xlrelease.FolderVersioningSettings
     gitConnection: Digital.ai Official Repository
     scmPath: workflows/digitalai-deploy
-    branch: main
-    autoImport: true
-    exportTemplates: false
-    exportPatterns: false
-    exportVariables: false
-    exportTriggers: false
-    exportConfiguration: false
-    exportDashboards: false
-    exportNotifications: false
-    versioningStyle: multipleFilesPerCIType
-- directory: DORA
-  children:
-  - type: xlrelease.FolderVersioningSettings
-    gitConnection: Digital.ai Official Repository
-    scmPath: workflows/DORA
     branch: main
     autoImport: true
     exportTemplates: false
