@@ -89,5 +89,5 @@ spec:
         label: Description
         description: The description of the item.
     disableNotifications: true
-    author: admin
+    author: Digital.ai
     defaultTargetFolder: Digital.ai - Official/Workflow Executions

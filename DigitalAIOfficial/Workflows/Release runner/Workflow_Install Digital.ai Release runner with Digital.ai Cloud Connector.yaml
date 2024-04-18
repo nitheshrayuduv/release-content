@@ -520,5 +520,5 @@ spec:
         label: Output
         description: Output
     disableNotifications: true
-    author: admin
+    author: Digital.ai
     defaultTargetFolder: Digital.ai - Official/Workflow Executions
