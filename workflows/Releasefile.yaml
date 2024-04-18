@@ -9,7 +9,7 @@ spec:
   - type: xlrelease.FolderVersioningSettings
     gitConnection: Digital.ai Official Repository
     scmPath: workflows/argo-cd
-    branch: main
+    branch: release/23.3.x
     autoImport: true
     exportTemplates: false
     exportPatterns: false
@@ -24,7 +24,7 @@ spec:
   - type: xlrelease.FolderVersioningSettings
     gitConnection: Digital.ai Official Repository
     scmPath: workflows/digitalai-deploy
-    branch: main
+    branch: release/23.3.x
     autoImport: true
     exportTemplates: false
     exportPatterns: false
@@ -39,7 +39,7 @@ spec:
   - type: xlrelease.FolderVersioningSettings
     gitConnection: Digital.ai Official Repository
     scmPath: workflows/secret-management
-    branch: main
+    branch: release/23.3.x
     autoImport: true
     exportTemplates: false
     exportPatterns: false
@@ -54,7 +54,7 @@ spec:
   - type: xlrelease.FolderVersioningSettings
     gitConnection: Digital.ai Official Repository
     scmPath: workflows/aws
-    branch: main
+    branch: release/23.3.x
     autoImport: true
     exportTemplates: false
     exportPatterns: false
@@ -69,7 +69,7 @@ spec:
   - type: xlrelease.FolderVersioningSettings
     gitConnection: Digital.ai Official Repository
     scmPath: workflows/terraform
-    branch: main
+    branch: release/23.3.x
     autoImport: true
     exportTemplates: false
     exportPatterns: false
