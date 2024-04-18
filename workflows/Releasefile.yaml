@@ -79,21 +79,6 @@ spec:
     exportDashboards: false
     exportNotifications: false
     versioningStyle: multipleFilesPerCIType
-- directory: Remote runner
-  children:
-    - type: xlrelease.FolderVersioningSettings
-      gitConnection: Digital.ai Official Repository
-      scmPath: workflows/remote-runner
-      branch: main
-      autoImport: true
-      exportTemplates: false
-      exportPatterns: false
-      exportVariables: false
-      exportTriggers: false
-      exportConfiguration: false
-      exportDashboards: false
-      exportNotifications: false
-      versioningStyle: multipleFilesPerCIType
 ---
 apiVersion: xl-release/v1
 kind: Permissions

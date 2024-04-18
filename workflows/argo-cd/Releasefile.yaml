@@ -7,3 +7,4 @@ spec:
   - Workflow_Install Argo Rollouts.yaml
   - Workflow_Install ArgoCD.yaml
   - Workflow_Setup ArgoCD application with initial deployment.yaml
+  - Workflow_Update Application in ArgoCD.yaml
