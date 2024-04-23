@@ -302,6 +302,7 @@ spec:
     label: Managed by
     description: "Marks how the application is managed, use Release value for apps\
       \ managed from Release"
+    value: Release
   - type: xlrelease.StringVariable
     key: updateWorkflowId
     requiresValue: false
