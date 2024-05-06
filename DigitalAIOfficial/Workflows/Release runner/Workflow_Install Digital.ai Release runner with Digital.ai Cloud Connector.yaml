@@ -306,10 +306,6 @@ spec:
               Check logs of the Runner service in the Kubernetes cluster.
               Below are some common issues. If some of them is matching your problem, consider selecting the corresponding troubleshoot action.
               
-              ### Runner logs constantly show 401 Unauthorized
-              - Check that Digital.ai Release runner user has permissions for Runner registration. If the runner is registered after setting permission, select **No action needed** and proceed.
-              - Runner registration token might be wrong or expired. In that case, select **Change Runner token**
-              
               ### Runner logs show dial tcp: lookup ${releaseUrl}: no such host
               - Check that provided Digital.ai Release server URL is accessible from the Kubernetes cluster.
               - If wrong URL is provided, or port is missing, select **Change Release URL**
