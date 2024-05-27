@@ -143,7 +143,6 @@ spec:
         import uuid
 
         from com.xebialabs.deployit.plugin.api.reflect import Type
-        from com.xebialabs.deployit.util import PasswordEncrypter
 
         server = Type.valueOf("argocd.APIServer").getDescriptor().newInstance("argocd-server")
 
@@ -154,11 +153,7 @@ spec:
         server.setProperty("username", "admin")
 
         # Set password
-        encrypted = releaseVariables["argoCDSecret"]
-        enc = PasswordEncrypter.getInstance()
-        decrypted = enc.ensureDecrypted(encrypted)
-        password = base64.b64decode(decrypted + b'==')
-        server.setProperty("password", password)
+        server.setProperty("password", "${argoCDSecret}")
 
         # Set default values
         server.setProperty("cardinality", 1)
@@ -182,7 +177,7 @@ spec:
         configurationApi.addConfiguration(endpoint)
 
         # Add event source
-        eventSource = Type.valueOf("argocd.StatusWebhookEventSource").getDescriptor().newInstance("status-event-webhook")
+        eventSource = Type.valueOf("argo.StatusWebhookEventSource").getDescriptor().newInstance("status-event-webhook")
         eventSource.setProperty("folderId", release.findFolderId())
         eventSource.setProperty("title", releaseVariables['argoCDServerTitle'])
         eventSource.setProperty("eventSource", endpoint)
