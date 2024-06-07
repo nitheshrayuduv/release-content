@@ -354,5 +354,5 @@ spec:
   logo:
     type: xlrelease.TemplateLogo
     contentType: image/svg+xml
-    file: !file "template-logo/9dda4235a32e0a48f98fd815771690a722aeb812/xlr-xld-plugin.svg"
+    file: !file "template-logo/9dda4235a32e0a48f98fd815771690a722aeb812/deploy.svg"
   defaultTargetFolder: Digital.ai - Official/Workflow Executions

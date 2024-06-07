@@ -1,0 +1,172 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  path: Workflows/ArgoCD
+  home: Digital.ai - Official/Workflows/ArgoCD
+spec:
+- template: Argo Rollouts install
+  description: Install Argo Rollouts to Kubernetes cluster.
+  scheduledStartDate: 2022-12-07T13:30:00+05:30
+  dueDate: 2022-12-07T14:30:00+05:30
+  phases:
+  - phase: Check if Argo Rollouts is already installed
+    tasks:
+    - name: Input for Argo Rollouts installation
+      type: xlrelease.UserInputTask
+      description: Input for Kubernetes API server URL and Kubernetes namespace where
+        ArgoCD will be installed.Please enter the required information below.
+      variables:
+      - kubernetesApiServer
+      - namespace
+    - name: Check if Argo Rollouts namespace exists
+      type: kubernetes.ExistsNamespace
+      description: "Checks if '${namespace}' namespace already exists. If it exists,\
+        \ there will be a check performed if ArgoCD services already exist."
+      variableMapping:
+        server: "${kubernetesApiServer}"
+        commandResponse: "${namespaceExistsResponse}"
+      capabilities:
+      - remote
+      namespace: "${namespace}"
+    - name: List all services in Argo Rollouts namespace
+      type: kubernetes.ListServices
+      description: |-
+        If '${namespace}' namespace exists, this task will be skipped.
+        Task lists all services and after that checks if there are any ArgoCD services.
+      precondition: |-
+        if releaseVariables['namespaceExistsResponse']['exists'] != 'false':
+          result = True
+        else:
+          result = False
+      variableMapping:
+        server: "${kubernetesApiServer}"
+        commandResponse: "${allServicesResponse}"
+      capabilities:
+      - remote
+      namespace: "${namespace}"
+    - name: Validate that Argo Rollouts services don't exist
+      type: xlrelease.ScriptTask
+      description: |-
+        If '${namespace}' namespace exists, this task will be skipped.
+        Task checks if there are any Argo Rollouts services in '${namespace}' namespace exist. If there are some, it means that Argo Rollouts is already installed and the release fails.
+      precondition: |-
+        if releaseVariables['namespaceExistsResponse']['exists'] == 'false':
+          result = False
+        else:
+          result = True
+      script: |-
+        import json
+
+        services = json.loads(releaseVariables['allServicesResponse']['services'])
+        for service in services:
+          if service.get('metadata', {}).get('name', '') == "argo-rollouts":
+            raise Exception('Argo Rollouts is already installed in namespace ${namespace}')
+    color: '#3d6c9e'
+  - phase: Install Argo Rollouts
+    tasks:
+    - name: Create argo-rollouts namespace
+      type: kubernetes.CreateNamespace
+      description: "Creates '${namespace}' namespace."
+      precondition: |-
+        if releaseVariables['namespaceExistsResponse']['exists'] == 'false':
+          result = True
+        else:
+          result = False
+      variableMapping:
+        server: "${kubernetesApiServer}"
+      capabilities:
+      - remote
+      namespace: "${namespace}"
+    - name: Apply Argo Rollouts installation on cluster
+      type: kubernetes.Apply
+      description: "Applies Argo Rollouts installation YAML on '${namespace}' namespace."
+      variableMapping:
+        server: "${kubernetesApiServer}"
+      capabilities:
+      - remote
+      namespace: argo-rollouts
+      yamlLocation: https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+    - name: Check status of pods in argo-rollouts namespace
+      type: kubernetes.CheckPodStatus
+      description: Performs check if all Argo Rollouts services are running successfully.
+      variableMapping:
+        server: "${kubernetesApiServer}"
+        commandResponse: "${checkService}"
+      capabilities:
+      - remote
+      namespace: "${namespace}"
+      labelSelector: app.kubernetes.io/name=argo-rollouts
+    color: '#3d6c9e'
+  - phase: Create Argo Rollouts CI
+    tasks:
+    - name: Input for Argo Rollouts CI
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      precondition: |-
+        if releaseVariables.has_key('checkService'):
+          checkService = releaseVariables['checkService']
+          if checkService.has_key('allRunning') and checkService['allRunning'] == 'true':
+            result = True
+          else:
+              raise Exception("Argo Rollouts services not running!")
+      variables:
+      - apiToken
+      - usernameRollouts
+      - argoRolloutsHost
+    - name: Create Argo Rollouts CI
+      type: xlrelease.ScriptTask
+      script: '# todo implement when argo rollouts plugin is done'
+    color: '#3d6c9e'
+  kind: WORKFLOW
+  categories:
+  - Application onboarding
+  variables:
+  - type: xlrelease.StringVariable
+    key: namespace
+    showOnReleaseStart: false
+    label: Namespace
+    description: Kubernetes namespace where Argo Rollouts will be installed
+    value: argo-rollouts
+  - type: xlrelease.ReferenceVariable
+    key: kubernetesApiServer
+    showOnReleaseStart: false
+    label: Kubernetes API server
+    description: Kubernetes API server where Argo Rollouts will be installed
+    referencedType: kubernetes.APIServer
+  - type: xlrelease.MapStringStringVariable
+    key: namespaceExistsResponse
+    requiresValue: false
+    showOnReleaseStart: false
+    label: namespaceExistsResponse
+  - type: xlrelease.StringVariable
+    key: argoRolloutsHost
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Argo Rollouts host
+  - type: xlrelease.StringVariable
+    key: usernameRollouts
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Username
+    value: admin
+  - type: xlrelease.StringVariable
+    key: apiToken
+    requiresValue: false
+    showOnReleaseStart: false
+    label: API token
+  - type: xlrelease.MapStringStringVariable
+    key: checkService
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.MapStringStringVariable
+    key: allServicesResponse
+    requiresValue: false
+    showOnReleaseStart: false
+  disableNotifications: true
+  author: Digital.ai
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/png
+    file: !file "template-logo/ce5e2c55c1d65057d9d445256baef6fceef4e644/argocd.svg"
+  defaultTargetFolder: Digital.ai - Official/Workflow Executions

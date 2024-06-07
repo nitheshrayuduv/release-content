@@ -1,0 +1,524 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  path: Workflows/Release runner
+  home: Digital.ai - Official/Workflows/Release runner
+spec:
+  - template: Digital.ai Release runner install with Digital.ai Cloud Connector
+    description: Install the Digital.ai Release runner with an embedded Kubernetes cluster
+      using the Digital.ai Cloud Connector. You need a Digital.ai account for this option.
+    scheduledStartDate: 2024-02-19T09:00:00+01:00
+    dueDate: 2024-02-19T10:00:00+01:00
+    phases:
+      - phase: Prerequisites
+        tasks:
+          - name: Getting started
+            type: xlrelease.Task
+            description: |-
+              This workflow will help you set up a Release runner by way of the Digital.ai Platform Cloud Connector.
+              
+              Use this option if you don't have access to an existing Kubernetes cluster.
+              
+              The Cloud Connector provides an embedded Kubernetes runtime environment that will host the Release runner and the container-based tasks coming from Release.
+              
+              ### Prerequisites
+              
+              For a successful runner installation with Digital.ai Platform you will need
+              
+              - Admin permissions in Digital.ai Release for this user running the workflow
+              - Network access to Digital.ai Platform service on the internet
+              - Username and password of the admin user of your customer account on Digital.ai Platform
+              - A target machine for the installation running Linux or macOS
+              - A Docker runtime on the target machine
+        color: '#3d6c9e'
+      - phase: Connect to Platform
+        tasks:
+          - name: Check Digital.ai Platform connection
+            type: xlrelease.ScriptTask
+            description: Checking if an existing connection to Digital.ai Platform exists.
+            script: |-
+              platformConnections = configurationApi.searchByTypeAndTitle("daiplatform.Server", "")
+              
+              if len(platformConnections) == 0:
+                releaseVariables["createPlatformConnection"] = True
+              else:
+                releaseVariables["createPlatformConnection"] = False
+          - name: Provide Digital.ai Platform connection details
+            type: xlrelease.UserInputTask
+            description: |-
+              Please enter the credentials of the admin user for your customer account on Digital.ai Platform.
+              
+              If you don't have this information, please contact your Digital.ai representative.
+            precondition: "releaseVariables[\"createPlatformConnection\"]"
+            variables:
+              - customer
+              - platformUsername
+              - platformPassword
+          - name: Create Digital.ai Platform connection
+            type: daiplatform.CreateConnection
+            customer: "${customer}"
+            username: "${platformUsername}"
+            regions:
+              - eu
+              - staging
+              - us
+            description: |-
+              Creating connecting to Digital.ai Platform
+              
+              
+              ⚠️ If this step fails because of incorrect credentials, please go to the previous step called **Provide Digital.ai Platform connection details** to change them and restart the workflow from there.
+            precondition: "releaseVariables[\"createPlatformConnection\"]"
+            variableMapping:
+              pythonScript.password: "${platformPassword}"
+              pythonScript.output: "${platformConnectionId}"
+          - name: Register Digital.ai Platform connection
+            type: xlrelease.ScriptTask
+            description: Registering Digital.ai Platform connection for use in subsequent
+              tasks.
+            precondition: "releaseVariables[\"createPlatformConnection\"]"
+            script: "releaseVariables[\"platformConnection\"] = releaseVariables[\"platformConnectionId\"\
+        ]"
+          - name: Select Digital.ai Platform connection
+            type: xlrelease.UserInputTask
+            description: Please select  the Digital.ai Platform connection that will be
+              used for installing the Cloud Connector.
+            precondition: "not releaseVariables[\"createPlatformConnection\"]"
+            variables:
+              - platformConnection
+        color: '#3d6c9e'
+      - phase: Get Cloud Connector Definition
+        tasks:
+          - name: Set Digital.ai Release placeholders
+            type: xlrelease.ScriptTask
+            description: Setting `$releaseUrl` and `$releaseName` variables placeholder
+              for further input.
+            script: |-
+              import re
+              
+              # Set Release URL
+              pattern = re.compile(r'^(https?://[^:/]+(?:\:\d+)?)')
+              
+              match = pattern.match('${release.url}')
+              
+              if match:
+                releaseUrl = match.group(1)
+                releaseVariables['releaseUrl'] = releaseUrl
+              
+              # Set Release name
+              pattern = re.compile(r'http[s]?://([^:/]+)')
+              
+              match = pattern.match('${release.url}')
+              
+              if match:
+                releaseName = match.group(1)
+                releaseVariables['releaseName'] = releaseName
+          - name: Set Digital.ai Release identifier
+            type: xlrelease.UserInputTask
+            description: |-
+              Please enter a unique identifier for  this Digital.ai Release server.
+              
+              Choose a name without whitespaces, using only letters, numbers, dots or hyphens.
+            variables:
+              - releaseName
+          - name: Check Cloud Connector registration
+            type: daiplatform.GetCloudConnectors
+            description: Retrieving registered Cloud Connectors from Digital.ai Platform
+            variableMapping:
+              pythonScript.daiPlatformServer: "${platformConnection}"
+              pythonScript.output: "${cloudConnectorsResponse}"
+          - name: Check Cloud Connector registration
+            type: xlrelease.ScriptTask
+            description: "Checking if there is already an existing Cloud Connector definition\
+        \ for `${releaseName}`"
+            script: |-
+              import json
+              
+              cloudConnectors = json.loads(releaseVariables["cloudConnectorsResponse"])
+              for cloudConnector in cloudConnectors:
+                if cloudConnector["name"] == releaseVariables["releaseName"]:
+                  releaseVariables["cloudConnectorId"] = cloudConnector["id"]
+                  releaseVariables["createCloudConnector"] = False
+                  break
+          - name: Create new Cloud Connector Definition
+            type: daiplatform.CreateCloudConnector
+            cloudConnectorName: "${releaseName}"
+            description: Creating a new Cloud Connector definition on the Digital.ai Platform.
+            precondition: "releaseVariables[\"createCloudConnector\"]"
+            variableMapping:
+              pythonScript.output: "${createCloudConnectorResponse}"
+              pythonScript.daiPlatformServer: "${platformConnection}"
+          - name: Set Cloud Connector ID
+            type: xlrelease.ScriptTask
+            precondition: "releaseVariables[\"createCloudConnector\"]"
+            script: |-
+              import json
+              
+              create_cloud_connector_response = json.loads(releaseVariables['createCloudConnectorResponse'])
+              releaseVariables['cloudConnectorId'] = create_cloud_connector_response['id']
+        color: '#3d6c9e'
+      - phase: Select Release Runner version
+        tasks:
+          - name: Get available Release runner versions (1/2)
+            type: daiplatform.GetAgentRuntimes
+            sort: -created_date
+            filter: "name[search]:runner"
+            description: Fetching available agent runtimes from Digital.ai Platform
+            variableMapping:
+              pythonScript.output: "${agentRuntimesResponse}"
+              pythonScript.daiPlatformServer: "${platformConnection}"
+          - name: Get available Release runner versions (2/2)
+            type: xlrelease.ScriptTask
+            description: Preparing form
+            script: |-
+              import json
+              
+              agent_runtimes = json.loads(releaseVariables['agentRuntimesResponse'])
+              agent_runtime_names = [agent_runtime['name'] for agent_runtime in agent_runtimes]
+              releaseVariables['agentRuntimeNames'] = agent_runtime_names
+              
+              if len(agent_runtimes)>0:
+                releaseVariables["agentRuntimeSelect"] = agent_runtimes[0]["name"]
+          - name: Select Release runner version
+            type: xlrelease.UserInputTask
+            description: Please confirm the version of the Release runner that will be installed
+            variables:
+              - agentRuntimeSelect
+          - name: Set Release runner ID
+            type: xlrelease.ScriptTask
+            description: Setting agent runtime ID for creating a new Release runner on Digital.ai
+              Platform.
+            script: |-
+              import json
+              
+              agent_runtimes = json.loads(releaseVariables['agentRuntimesResponse'])
+              for agent_runtime in agent_runtimes:
+                if agent_runtime['name'] == releaseVariables['agentRuntimeSelect']:
+                  releaseVariables['agentRuntimeId'] = agent_runtime['id']
+                  break
+        color: '#3d6c9e'
+      - phase: Install Cloud Connector and Release Runner
+        tasks:
+          - name: Get installation token
+            type: daiplatform.GetToken
+            description: |-
+              Fetching access token from the Digital.ai Platform server. The token is required for installing the Cloud Connector in the nest step.
+              
+              Restart from here if the token expired and caused the installation to fail
+            variableMapping:
+              pythonScript.output: "${platformAccessToken}"
+              pythonScript.daiPlatformServer: "${platformConnection}"
+          - name: Install the Cloud Connector
+            type: xlrelease.Task
+            description: |-
+              Digital.ai Platform has provided a customized installer with a unique token.
+              
+              ## Download and start Cloud Connector installer script
+              Copy the following command and paste it into your target machine's terminal.
+              
+              ```
+              curl -X GET 'https://api.staging.digital.ai/workload/v1/cloud_connectors/${cloudConnectorId}/installer/?target_os=linux' -H 'accept: application/x-sh' -H 'authorization: Bearer ${platformAccessToken}' --output dcc-installer.sh && bash dcc-installer.sh && bash cloud-connector-setup.sh
+              ```
+              
+              
+              If the token has expired, restart from the previous step **Get installation token**
+          - name: Prepare Digital.ai Release URL
+            type: xlrelease.UserInputTask
+            description: Enter URL of your Digital.ai Release instance that is **accessible
+              from the Kubernetes cluster**.
+            variables:
+              - releaseUrl
+          - name: Set Release runner name
+            type: xlrelease.UserInputTask
+            description: |-
+              Please enter the identifying name of the Release runner
+              
+              This is the name of all Digital.ai Release runner related services in Kubernetes cluster.
+              
+              Choose a name without whitespaces, using only letters, numbers, or hyphens.
+              The name must start and end with an alphanumeric character to ensure compatibility across Kubernetes cluster.
+            variables:
+              - runnerName
+          - name: Create runner token
+            type: xlrelease.ScriptTask
+            description: Creates Runner token for authentication on Digital.ai Release
+            script: |-
+              import random
+              import string
+              from java.util import Set
+              from com.xebialabs.xlrelease.api.v1.forms import CreatePersonalAccessTokenForm
+              
+              characters = string.ascii_letters + string.digits
+              uid = ''.join(random.choice(characters) for _ in range(6))
+              token_note = releaseVariables["runnerName"] + "-" + uid
+              
+              token_form = CreatePersonalAccessTokenForm(token_note)
+              global_permissions = Set.of("runner#registration")
+              token_form.setGlobalPermissions(global_permissions)
+              
+              response = personalAccessTokenApi.createPersonalAccessToken(token_form)
+              
+              releaseVariables["runnerRegistrationToken"] = response.getProperty("token")
+          - name: Create runner Instance
+            type: daiplatform.CreateAgentInstance
+            agentId: "${agentRuntimeId}"
+            alias: "${runnerName}"
+            ^description: Digital.ai Release runner
+            variables:
+              RUNNER_REGISTRATION_TOKEN: "${runnerRegistrationToken}"
+              DAI_AGENT_ID: "${cloudConnectorId}"
+              RELEASE_URL: "${releaseUrl}"
+              RUNNER_NAME: "${runnerName}"
+            cloudConnectorId: "${cloudConnectorId}"
+            description: Creating a new agent instance in Digital.ai Platform for selected
+              Release runner version
+            variableMapping:
+              pythonScript.daiPlatformServer: "${platformConnection}"
+              pythonScript.output: "${createAgentInstanceResponse}"
+        color: '#3d6c9e'
+      - phase: Check Release Runner installation
+        tasks:
+          - name: Check if Release runner is installed
+            type: xlrelease.ScriptTask
+            description: |-
+              Checking if runner installation was successful.
+              
+              This may take a couple of minutes.
+            script: |-
+              import time
+              import json
+              
+              # set created agent instance ID
+              agent_instance = json.loads(releaseVariables["createAgentInstanceResponse"])
+              releaseVariables["agentInstanceId"] = agent_instance["agent_instance"]["id"]
+              
+              # check if runner is registered
+              for i in range(60):
+                runners = configurationApi.searchByTypeAndTitle("xlrelease.RemoteJobRunner", "{}-0".format(releaseVariables["runnerName"]))
+                if len(runners)>0:
+                  releaseVariables["runnerInstalled"] = True
+                  break
+                time.sleep(1)
+          - name: Troubleshooting
+            type: xlrelease.UserInputTask
+            description: |-
+              Runner is not registered on Digital.ai Release.
+              Check logs of the Runner service in the Kubernetes cluster.
+              Below are some common issues. If some of them is matching your problem, consider selecting the corresponding troubleshoot action.
+              
+              ### Runner logs constantly show 401 Unauthorized
+              - Check that Digital.ai Release runner user has permissions for Runner registration. If the runner is registered after setting permission, select **No action needed** and proceed.
+              - Runner registration token might be wrong or expired. In that case, select **Change Runner token**
+              
+              ### Runner logs show dial tcp: lookup ${releaseUrl}: no such host
+              - Check that provided Digital.ai Release server URL is accessible from the Kubernetes cluster.
+              - If wrong URL is provided, or port is missing, select **Change Release URL**
+            precondition: "not releaseVariables[\"runnerInstalled\"]"
+            variables:
+              - troubleshootAction
+          - name: Prepare Digital.ai Release URL
+            type: xlrelease.UserInputTask
+            description: Enter URL of your Digital.ai Release instance that is **accessible
+              from the Kubernetes cluster**.
+            precondition: "releaseVariables[\"troubleshootAction\"] == \"Change Release\
+        \ URL\""
+            variables:
+              - releaseUrl
+          - name: Change Release URL
+            type: daiplatform.PatchAgentInstance
+            agentInstanceId: "${agentInstanceId}"
+            variables:
+              RELEASE_URL: "${releaseUrl}"
+            description: Updating Agent Instance RELEASE_URL variable.
+            precondition: "releaseVariables[\"troubleshootAction\"] == \"Change Release\
+        \ URL\""
+            variableMapping:
+              pythonScript.daiPlatformServer: "${platformConnection}"
+          - name: Update Agent Instance
+            type: daiplatform.PatchAgentInstance
+            agentInstanceId: "${agentInstanceId}"
+            ^description: Digital.ai Release runner
+            variables:
+              RUNNER_REGISTRATION_TOKEN: "${runnerRegistrationToken}"
+              DAI_AGENT_ID: "${cloudConnectorId}"
+              RELEASE_URL: "${releaseUrl}"
+              RUNNER_NAME: "${runnerName}"
+            description: Updating Agent Instance values
+            precondition: "releaseVariables[\"troubleshootAction\"] == \"Change Release\
+        \ URL\""
+            variableMapping:
+              pythonScript.daiPlatformServer: "${platformConnection}"
+              pythonScript.output: "${createAgentInstanceResponse}"
+          - name: Check if runner is installed after troubleshoot
+            type: xlrelease.ScriptTask
+            description: |-
+              Checking if Runner installation is successful after troubleshoot.
+              This may take up to 1 minute.
+              If the task fails, return to Troubleshooting.
+            script: |-
+              import time
+              import json
+              
+              for i in range(60):
+                runners = configurationApi.searchByTypeAndTitle("xlrelease.RemoteJobRunner", "{}-0".format(releaseVariables["runnerName"]))
+                if len(runners)>0:
+                  releaseVariables["runnerInstalled"] = True
+                  break
+                time.sleep(1)
+              
+              if not releaseVariables["runnerInstalled"]:
+                raise Exception("Runner still not installed. Go back to Troubleshooting.")
+        color: '#3d6c9e'
+    kind: WORKFLOW
+    categories:
+      - Digital.ai Release runner installation
+    variables:
+      - type: xlrelease.StringVariable
+        key: customer
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Customer ID
+        description: The unique identifier for your account
+      - type: xlrelease.ReferenceVariable
+        key: platformConnection
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Digital.ai Platform connection
+        description: Digital.ai Platform Server to connect
+        referencedType: daiplatform.Server
+      - type: xlrelease.StringVariable
+        key: platformUsername
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Digital.ai Platform username
+        description: Used to connect to to Digital.ai Platform
+      - type: xlrelease.PasswordStringVariable
+        key: platformPassword
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Digital.ai Platform password
+        description: Used to connect to Digital.ai Platform
+      - type: xlrelease.StringVariable
+        key: releaseName
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Digital.ai Release instance name
+        description: Unique Digital.ai Release identifier
+      - type: xlrelease.StringVariable
+        key: releaseUrl
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Digital.ai Release URL
+        description: Digital.ai Release URL for Digital.ai Release runner to register
+        value: http://host.k3d.internal:5516
+      - type: xlrelease.BooleanVariable
+        key: createPlatformConnection
+        requiresValue: false
+        showOnReleaseStart: false
+      - type: xlrelease.BooleanVariable
+        key: createCloudConnector
+        requiresValue: false
+        showOnReleaseStart: false
+        value: true
+      - type: xlrelease.StringVariable
+        key: cloudConnectorsResponse
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Output
+        description: Output
+      - type: xlrelease.StringVariable
+        key: agentRuntimesResponse
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Output
+        description: Output
+      - type: xlrelease.ListStringVariable
+        key: agentRuntimeNames
+        requiresValue: false
+        showOnReleaseStart: false
+      - type: xlrelease.StringVariable
+        key: latestAgentRuntime
+        requiresValue: false
+        showOnReleaseStart: false
+      - type: xlrelease.StringVariable
+        key: agentRuntimeSelect
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Digital.ai Release runner version
+        description: Select Agent Runtime that contains Digital.ai Release runner configuration
+        valueProvider:
+          type: xlrelease.ListOfStringValueProviderConfiguration
+          variableMapping:
+            values: "${agentRuntimeNames}"
+      - type: xlrelease.StringVariable
+        key: platformAccessToken
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Output
+        description: Output
+      - type: xlrelease.StringVariable
+        key: cloudConnectorId
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Cloud Connector ID
+      - type: xlrelease.StringVariable
+        key: runnerRegistrationToken
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Runner token
+        description: Runner uses this token to call the Digital.ai Release Rest API
+      - type: xlrelease.StringVariable
+        key: runnerName
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Digital.ai Release runner name
+        description: Digital.ai Release runner name to register on Digital.ai Release
+        value: runner
+      - type: xlrelease.StringVariable
+        key: createCloudConnectorResponse
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Output
+        description: Output
+      - type: xlrelease.StringVariable
+        key: agentRuntimeId
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Agent Runtime ID
+        description: Agent Runtime ID
+      - type: xlrelease.BooleanVariable
+        key: runnerInstalled
+        requiresValue: false
+        showOnReleaseStart: false
+      - type: xlrelease.StringVariable
+        key: troubleshootAction
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Troubleshoot Action
+        valueProvider:
+          type: xlrelease.ListOfStringValueProviderConfiguration
+          values:
+            - No action needed
+            - Change Release URL
+        value: No action needed
+      - type: xlrelease.StringVariable
+        key: createAgentInstanceResponse
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Output
+        description: Output
+      - type: xlrelease.StringVariable
+        key: agentInstanceId
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Agent Instance ID
+        description: Agent Instance ID
+      - type: xlrelease.StringVariable
+        key: platformConnectionId
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Output
+        description: Output
+    disableNotifications: true
+    author: Digital.ai
+    defaultTargetFolder: Digital.ai - Official/Workflow Executions

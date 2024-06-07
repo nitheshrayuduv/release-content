@@ -1,0 +1,104 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  path: Workflows/AWS
+  home: Digital.ai - Official/Workflows/AWS
+spec:
+- template: AWS Lambda create function using S3 zip file 
+  description: Workflow provides the steps that create an AWS Lambda Function using
+    S3 zip file
+  scheduledStartDate: 2023-09-20T09:00:00+05:30
+  dueDate: 2023-09-20T10:00:00+05:30
+  phases:
+  - phase: New Phase
+    tasks:
+    - name: AWS Server Connection
+      type: xlrelease.UserInputTask
+      description: |-
+        Select the AWS Server Connection and Provide the Region.
+        You can create a new connection if you have not created one.
+      variables:
+      - host
+      - region
+    - name: AWS Lambda Function Details
+      type: xlrelease.UserInputTask
+      description: Provide the AWS Lambda Function Details to create.
+      variables:
+      - functionName
+      - role
+      - runtime
+      - handler
+    - name: S3 Bucket Details
+      type: xlrelease.UserInputTask
+      description: Provide the S3 Bucket Details for your deployment package.
+      variables:
+      - bucketName
+      - objectKey
+    - name: Create Lambda Function using S3 Zip
+      type: containerAws.CreateFunctionS3Zip
+      description: Automated task to create an AWS Lambda Function using S3 zip file.
+      variableMapping:
+        host: "${host}"
+      capabilities:
+      - remote
+      region: "${region}"
+      functionName: "${functionName}"
+      bucketName: "${bucketName}"
+      objectKey: "${objectKey}"
+      runtime: "${runtime}"
+      role: "${role}"
+      handler: "${handler}"
+  kind: WORKFLOW
+  categories:
+  - Infrastructure Service
+  variables:
+  - type: xlrelease.ReferenceVariable
+    key: host
+    showOnReleaseStart: false
+    label: AWS Server
+    description: AWS Server Connection
+    referencedType: containerAws.Server
+  - type: xlrelease.StringVariable
+    key: region
+    showOnReleaseStart: false
+    label: AWS Region
+    description: AWS region to use
+  - type: xlrelease.StringVariable
+    key: functionName
+    showOnReleaseStart: false
+    label: Function Name
+    description: AWS lambda function name
+  - type: xlrelease.StringVariable
+    key: runtime
+    showOnReleaseStart: false
+    label: Runtime
+    description: "The runtime environment for the Lambda function  Ex: python3.8"
+  - type: xlrelease.StringVariable
+    key: role
+    showOnReleaseStart: false
+    label: Role
+    description: The Amazon Resource Name (ARN) of the IAM role
+  - type: xlrelease.StringVariable
+    key: handler
+    showOnReleaseStart: false
+    label: Handler
+    description: The function within your code that Lambda calls to begin execution
+  - type: xlrelease.StringVariable
+    key: bucketName
+    showOnReleaseStart: false
+    label: Bucket Name
+    description: AWS S3 bucket name where the .zip file containing your deployment
+      package is stored
+  - type: xlrelease.StringVariable
+    key: objectKey
+    requiresValue: false
+    label: S3 Object Key
+    description: path/to/your/lambda-package.zip
+  disableNotifications: true
+  author: Digital.ai
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/svg+xml
+    file: !file "template-logo/451b3d960f1d50cbf645a535c781edf32783b4e1/aws.svg"
+  defaultTargetFolder: Digital.ai - Official/Workflow Executions

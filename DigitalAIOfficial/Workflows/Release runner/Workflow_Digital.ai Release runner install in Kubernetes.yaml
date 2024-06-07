@@ -1,0 +1,93 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  path: Workflows/Release runner
+  home: Digital.ai - Official/Workflows/Release runner
+spec:
+  - template: Digital.ai Release runner install in Kubernetes
+    description: Install a Digital.ai Release runner into an existing Kubernetes cluster
+      using the `xl` client.
+    scheduledStartDate: 2023-12-22T09:00:00+01:00
+    dueDate: 2023-12-22T10:00:00+01:00
+    phases:
+      - phase: Workflow tasks
+        tasks:
+          - name: Set up Kubernetes cluster
+            type: xlrelease.Task
+            description: |-
+              Configure Kubernetes cluster
+              
+              Current supported clusters:
+              - Openshift
+              - AWS EKS
+              - Plain multi-node K8s cluster
+              - Azure AKS
+              - Google Kubernetes Engine
+              
+              Also, `kubectl` should be up and running and connected to the cluster
+          - name: Create runner token
+            type: xlrelease.ScriptTask
+            description: Creates Runner token for authentication on Digital.ai Release
+            script: |-
+              import random
+              import string
+              from java.util import Set
+              from com.xebialabs.xlrelease.api.v1.forms import CreatePersonalAccessTokenForm
+              
+              characters = string.ascii_letters + string.digits
+              uid = ''.join(random.choice(characters) for _ in range(6))
+              token_note = "runner-" + uid
+              
+              token_form = CreatePersonalAccessTokenForm(token_note)
+              global_permissions = Set.of("runner#registration")
+              token_form.setGlobalPermissions(global_permissions)
+              
+              response = personalAccessTokenApi.createPersonalAccessToken(token_form)
+              
+              releaseVariables["runnerRegistrationToken"] = response.getProperty("token")
+          - name: Install XL CLI
+            type: xlrelease.Task
+            description: |-
+              [About XL CLI](https://docs.digital.ai/bundle/devops-release-version-v.23.3/page/release/operator/xl-op-before-you-begin.html)
+              
+              [Instructions to install XL CLI](https://docs.digital.ai/bundle/devops-deploy-version-v.23.3/page/deploy/how-to/install-the-xl-cli.html)
+              
+              Make sure that you run the same version of `xl` as the installation of Digital.ai Release
+          - name: Install Digital.ai Release runner
+            type: xlrelease.Task
+            description: |-
+              ## Install new Digital.ai Release runner through XL CLI
+              
+              Run `xl kube install`
+              
+              This will start a CLI wizard.
+              
+              ### Digital.ai Release runner install wizard
+              - Insert kubectl context to be used during execution (or use default)
+              - Select Kubernetes setup
+              - Insert Kubernetes namespace (or use default)
+              - When be asked to select a product for installation, select `dai-release-runner [Digital.ai Release runner for Digital.ai Release]`
+              - Select type of image registry (or use default)
+              - Enter Digital.ai Release runner image information (or use default)
+              - Enter Digital.ai Release runner Helm Chart release name and version (or use default)
+              - Enter the URL for the Digital.ai Release server that is **reachable from within the Kubernetes cluster**
+              - Enter token `${runnerRegistrationToken}`
+              - Enter how many replicas of Digital.ai Release runner you want
+              - Enter truststore for Digital.ai Release runner
+              
+              
+              To customize the configuration based on your setup, `xl kube install` offers various customization options. Please refer to the [documentation](https://docs.digital.ai/bundle/devops-release-version-v.23.3/page/release/operator/xl-op-before-you-begin.html) for further information
+    kind: WORKFLOW
+    categories:
+      - Digital.ai Release runner installation
+    variables:
+      - type: xlrelease.StringVariable
+        key: runnerRegistrationToken
+        requiresValue: false
+        showOnReleaseStart: false
+        label: Description
+        description: The description of the item.
+    disableNotifications: true
+    author: Digital.ai
+    defaultTargetFolder: Digital.ai - Official/Workflow Executions

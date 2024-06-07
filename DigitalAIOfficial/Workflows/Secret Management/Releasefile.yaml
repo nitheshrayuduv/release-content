@@ -3,9 +3,9 @@ apiVersion: xl-release/v1
 kind: Import
 spec:
   imports:
-  - Workflow_Create Secret in AWS SecretsManager.yaml
-  - Workflow_Create Secret in Azure KeyVault.yaml
-  - Workflow_Delete Secret in AWS SecretsManager.yaml
-  - Workflow_Delete Secret in Azure KeyVault.yaml
-  - Workflow_Update Secret in AWS SecretsManager.yaml
-  - Workflow_Update Secret in Azure KeyVault.yaml
+  - Workflow_AWS SecretsManager create secret.yaml
+  - Workflow_AWS SecretsManager delete secret.yaml
+  - Workflow_Azure KeyVault create secret.yaml
+  - Workflow_Azure KeyVault delete secret.yaml
+  - Workflow_AWS SecretsManager update secret.yaml
+  - Workflow_Azure KeyVault update secret.yaml

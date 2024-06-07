@@ -1,0 +1,555 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  path: Workflows/ArgoCD
+  home: Digital.ai - Official/Workflows/ArgoCD
+spec:
+- template: ArgoCD setup application
+  description: "Create an application in ArgoCD that can be deployed to Kubernetes\
+    \ cluster, with initial deployment"
+  scheduledStartDate: 2022-12-13T13:30:00+05:30
+  dueDate: 2022-12-13T14:30:00+05:30
+  phases:
+  - phase: Check if application exists
+    tasks:
+    - name: Check if remote runner exists
+      type: xlrelease.ScriptTask
+      script: |-
+        def check_runners(runners):
+          for runner in runners:
+            if runner["enabled"] and "remote" in runner["capabilities"]:
+              return True
+          return False
+
+        runners = configurationApi.searchByTypeAndTitle("xlrelease.JobRunner", "")
+
+        if not check_runners(runners):
+          raise Exception("There is no job runner with 'remote' capability enabled")
+    - name: Application input
+      type: xlrelease.UserInputTask
+      description: Input for application information together with the ArgoCD server
+      variables:
+      - argoCDApiServer
+      - gitRepo
+      - path
+      - revision
+      - chart
+      - clusterUrl
+    - name: Check if application exists
+      type: argocd.CheckIfApplicationExists
+      description: |-
+        This is an automated task that checks whether an application already exists on the server based on the details provided.
+
+        If the application does not exist, the task will be completed and the workflow will proceed to the next task.
+
+        However, if the application already exists, the task will fail, and the workflow will be aborted. This is to prevent creating duplicate applications and ensure the proper functioning of the Argo CD Server.
+      variableMapping:
+        server: "${argoCDApiServer}"
+        commandResponse: "${applicationExistsResponse}"
+      capabilities:
+      - remote
+      gitRepo: "${gitRepo}"
+      path: "${path}"
+      branch: "${revision}"
+      clusterUrl: "${clusterUrl}"
+    color: '#3d6c9e'
+  - phase: Check if namespace exists
+    tasks:
+    - name: Namespace input
+      type: xlrelease.UserInputTask
+      description: |-
+        This task involves providing the namespace in which the application will be deployed and run from. Additionally, you will need to provide the Kubernetes API server to connect to for deploying and managing the application.
+
+        If you do not provide a namespace, the task will use the default value. Please ensure that the provided namespace is valid and appropriate for your application
+      precondition: |-
+        import json
+
+        if releaseVariables["applicationExistsResponse"]["exists"] == "true":
+          raise Exception("Application app already exists!")
+
+        result = True
+      variables:
+      - kubernetesApiServer
+      - namespace
+    - name: Check if namespace exists
+      type: kubernetes.ExistsNamespace
+      description: "Checks if '${namespace}' namespace already exists."
+      variableMapping:
+        server: "${kubernetesApiServer}"
+        commandResponse: "${namespaceExistsResponse}"
+      capabilities:
+      - remote
+      namespace: "${namespace}"
+    color: '#3d6c9e'
+  - phase: Create namespace
+    tasks:
+    - name: Create namespace
+      type: kubernetes.CreateNamespace
+      description: "Creates the ${namespace} namespace. If it already exists, this\
+        \ task is skipped."
+      precondition: |-
+        import json
+
+        result = (releaseVariables["namespaceExistsResponse"]["exists"] != "true")
+      variableMapping:
+        server: "${kubernetesApiServer}"
+      capabilities:
+      - remote
+      namespace: "${namespace}"
+    color: '#3d6c9e'
+  - phase: Create ArgoCD application
+    tasks:
+    - name: Application information input
+      type: xlrelease.UserInputTask
+      description: Application name and ArgoCD project.
+      variables:
+      - applicationName
+      - projectName
+      - environmentTag
+      - managedBy
+      - repoAccess
+      - autoSync
+    - name: Repository authentication input
+      type: xlrelease.UserInputTask
+      description: Please enter the required information below.
+      precondition: |-
+        import json
+
+        if releaseVariables["repoAccess"] == "private":
+          result = True
+        else:
+          result = False
+      variables:
+      - repoUsername
+      - repoPassword
+      - repoName
+      - enableLfs
+      - enableOCI
+      - gitEnterpriseURL
+      - gitAppID
+      - gitAppInstallationID
+      - gitAppPrivateKey
+      - inheritedCreds
+      - insecure
+      - insecureIgnoreHostKey
+      - project
+      - proxy
+      - sshPrivateKey
+      - tlsData
+      - tlsKey
+    - name: Get repository details
+      type: argocd.ListRepositories
+      description: Please enter the required information below.
+      variableMapping:
+        server: "${argoCDApiServer}"
+        commandResponse: "${repositoryListResponse}"
+      capabilities:
+      - remote
+    - name: Create repository configuration
+      type: argocd.CreateRepository
+      precondition: |-
+        import json
+        repositoriesRelease = releaseVariables["repositoryListResponse"]["repositories"]
+        repositories = json.loads(repositoriesRelease)
+
+        result = True
+        if (repositories == None):
+          result = True
+        else:
+          target_repo = releaseVariables["gitRepo"]
+          result = not (any(repo['repo'] == target_repo for repo in repositories))
+      variableMapping:
+        enableLfs: "${enableLfs}"
+        server: "${argoCDApiServer}"
+        password: "${repoPassword}"
+        insecure: "${insecure}"
+        insecureIgnoreHostKey: "${insecureIgnoreHostKey}"
+        inheritedCreds: "${inheritedCreds}"
+        enableOCI: "${enableOCI}"
+      capabilities:
+      - remote
+      repo: "${gitRepo}"
+      username: "${repoUsername}"
+      repoName: "${repoName}"
+      githubAppEnterpriseBaseUrl: "${gitEnterpriseURL}"
+      githubAppID: "${gitAppID}"
+      githubAppInstallationID: "${gitAppInstallationID}"
+      githubAppPrivateKey: "${gitAppPrivateKey}"
+      project: "${project}"
+      proxy: "${proxy}"
+      sshPrivateKey: "${sshPrivateKey}"
+      tlsClientCertData: "${tlsData}"
+      tlsClientCertKey: "${tlsKey}"
+    - name: ArgoCD application configuration input
+      type: xlrelease.UserInputTask
+      description: Labels & sync policies.
+      variables:
+      - prune
+      - selfHeal
+      - skipSchemaValidation
+      - pruneLast
+      - autoCreateNamespace
+      - applyOutOfSyncOnly
+      - prunePropagationPolicy
+      - replace
+    - name: Create ArgoCD application
+      type: argocd.CreateApplication
+      description: "Deploys ArgoCD application with given information about application\
+        \ name, project, git repo, path and branch."
+      variableMapping:
+        skipValidation: "${skipSchemaValidation}"
+        server: "${argoCDApiServer}"
+        replace: "${replace}"
+        autoSync: "${autoSync}"
+        autoCreateNamespace: "${autoCreateNamespace}"
+        pruneLast: "${pruneLast}"
+        prunePropagationPolicy: "${prunePropagationPolicy}"
+        pruneResources: "${prune}"
+        selfHeal: "${selfHeal}"
+        applyOutOfSyncOnly: "${applyOutOfSyncOnly}"
+      capabilities:
+      - remote
+      appName: "${applicationName}"
+      project: "${projectName}"
+      url: "${gitRepo}"
+      path: "${path}"
+      chart: "${chart}"
+      revision: "${revision}"
+      namespace: "${namespace}"
+    color: '#3d6c9e'
+  - phase: Get application status
+    tasks:
+    - name: Sync application
+      type: argocd.SyncApplication
+      precondition: |-
+        import json
+
+        if releaseVariables["autoSync"] == False:
+          result = True
+        else:
+          result = False
+      variableMapping:
+        server: "${argoCDApiServer}"
+      capabilities:
+      - remote
+      applicationName: "${applicationName}"
+    - name: Get application status
+      type: argocd.CheckApplicationStatus
+      description: Checks if application is successfully deployed.
+      variableMapping:
+        server: "${argoCDApiServer}"
+      capabilities:
+      - remote
+      applicationName: "${applicationName}"
+    color: '#3d6c9e'
+  - phase: Create Managed Application
+    tasks:
+    - name: Create managed application
+      type: managedApplications.CreateApplication
+      applicationName: "${applicationName}"
+      managedBy: "${managedBy}"
+      environmentTag: "${environmentTag}"
+      applicationReference: "${clusterUrl}"
+      deleteWorkflowId: "Delete Application in ArgoCD"
+      updateWorkflowId: "Update Application in ArgoCD"
+      variableMapping:
+        pythonScript.managedApplicationId: "${managedApplicationId}"
+        pythonScript.connectionServer: "${argoCDApiServer}"
+    color: '#3d6c9e'
+  kind: WORKFLOW
+  categories:
+  - Application onboarding
+  variables:
+  - type: xlrelease.MapStringStringVariable
+    key: applicationExistsResponse
+    requiresValue: false
+    showOnReleaseStart: false
+    value:
+      exists: "false"
+  - type: xlrelease.MapStringStringVariable
+    key: namespaceExistsResponse
+    requiresValue: false
+    showOnReleaseStart: false
+    value:
+      exists: "false"
+  - type: xlrelease.StringVariable
+    key: gitRepo
+    showOnReleaseStart: false
+    label: Git Repo
+    description: Git repository from where application configuration will be fetched
+  - type: xlrelease.StringVariable
+    key: path
+    showOnReleaseStart: false
+    label: Path
+    description: Path inside git repository where configuration is located
+  - type: xlrelease.StringVariable
+    key: revision
+    showOnReleaseStart: false
+    label: Revision
+    description: "Git - can be commit, tag, or branch. Helm - a semver tag for the\
+      \ Chart's version"
+    value: HEAD
+  - type: xlrelease.StringVariable
+    key: chart
+    requiresValue: false
+    label: Helm chart
+    description: Helm chart name
+  - type: xlrelease.StringVariable
+    key: clusterUrl
+    showOnReleaseStart: false
+    label: Cluster url
+    description: Kubernetes cluster URL
+    value: https://kubernetes.default.svc
+  - type: xlrelease.StringVariable
+    key: namespace
+    showOnReleaseStart: false
+    label: Namespace
+    description: The Kubernetes namespace where application wll be deployed
+    value: default
+  - type: xlrelease.StringVariable
+    key: applicationName
+    showOnReleaseStart: false
+    label: Application name
+    description: New application name in ArgoCD
+  - type: xlrelease.StringVariable
+    key: projectName
+    showOnReleaseStart: false
+    label: Project name
+    description: ArgoCD project name
+    value: default
+  - type: xlrelease.ReferenceVariable
+    key: kubernetesApiServer
+    showOnReleaseStart: false
+    label: Kubernetes API server
+    description: Kubernetes API server where ArgoCD is installed
+    referencedType: kubernetes.APIServer
+  - type: xlrelease.ReferenceVariable
+    key: argoCDApiServer
+    showOnReleaseStart: false
+    label: ArgoCD API server
+    description: ArgoCD API server where application will be deployed
+    referencedType: argocd.APIServer
+  - type: xlrelease.StringVariable
+    key: environmentTag
+    showOnReleaseStart: false
+    label: Environment tag
+    description: Tag of the target environment
+    value: PROD
+  - type: xlrelease.StringVariable
+    key: managedBy
+    showOnReleaseStart: false
+    label: Managed by
+    description: "Marks how the application is managed, use Release value for apps\
+      \ managed from Release"
+    value: Release
+  - type: xlrelease.StringVariable
+    key: repoAccess
+    showOnReleaseStart: false
+    label: Repo access rights
+    valueProvider:
+      type: xlrelease.ListOfStringValueProviderConfiguration
+      values:
+      - public
+      - private
+  - type: xlrelease.StringVariable
+    key: repoUsername
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Repo username
+    description: This is required only if repository is private
+  - type: xlrelease.PasswordStringVariable
+    key: repoPassword
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Repo password
+    description: This is required if private repository is password protected
+  - type: xlrelease.StringVariable
+    key: repoType
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Repo type
+    description: Repo type
+  - type: xlrelease.BooleanVariable
+    key: autoSync
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Auto Sync
+    description: Auto Sync application
+  - type: xlrelease.StringVariable
+    key: repoName
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Repo Name
+    description: Repo Name
+  - type: xlrelease.BooleanVariable
+    key: enableLfs
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Enable Lfs
+    description: Enable Git Large File Storage
+  - type: xlrelease.BooleanVariable
+    key: enableOCI
+    showOnReleaseStart: false
+    label: Enable O C I
+    description: Enable Oracle Cloud Infrastructure Repository
+  - type: xlrelease.StringVariable
+    key: gitEnterpriseURL
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Github App Enterprise Base Url
+    description: Github App Enterprise Base Url
+  - type: xlrelease.StringVariable
+    key: gitAppID
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Github App ID
+    description: Github App ID
+  - type: xlrelease.StringVariable
+    key: gitAppInstallationID
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Github App Installation I D
+    description: Github App Installation I D
+  - type: xlrelease.StringVariable
+    key: gitAppPrivateKey
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Github App Private Key
+    description: Github App Private Key
+  - type: xlrelease.BooleanVariable
+    key: inheritedCreds
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Inherited Creds
+    description: Inherited Creds
+  - type: xlrelease.BooleanVariable
+    key: insecure
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Insecure
+    description: Insecure
+  - type: xlrelease.BooleanVariable
+    key: insecureIgnoreHostKey
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Insecure Ignore Host Key
+    description: Insecure Ignore Host Key
+  - type: xlrelease.StringVariable
+    key: project
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Project
+    description: Project
+  - type: xlrelease.StringVariable
+    key: proxy
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Proxy
+    description: Proxy
+  - type: xlrelease.StringVariable
+    key: sshPrivateKey
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Ssh Private Key
+    description: Ssh Private Key
+    multiline: true
+  - type: xlrelease.StringVariable
+    key: tlsData
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Tls Client Cert Data
+    description: Tls Client Cert Data
+    multiline: true
+  - type: xlrelease.StringVariable
+    key: tlsKey
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Tls Client Cert Key
+    description: Tls Client Cert Key
+    multiline: true
+  - type: xlrelease.BooleanVariable
+    key: prune
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Prune
+    description: Prune specifies whether to delete resources from the cluster that
+      are not found in the sources anymore as part of automated sync.
+  - type: xlrelease.BooleanVariable
+    key: selfHeal
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Self Heal
+    description: SelfHeal specifies whether to revert resources back to their desired
+      state upon modification in the cluster.
+  - type: xlrelease.BooleanVariable
+    key: skipSchemaValidation
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Skip schema validation
+  - type: xlrelease.BooleanVariable
+    key: pruneLast
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Prune last
+  - type: xlrelease.BooleanVariable
+    key: autoCreateNamespace
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Auto create namespace
+  - type: xlrelease.BooleanVariable
+    key: applyOutOfSyncOnly
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Apply out of sync only
+  - type: xlrelease.StringVariable
+    key: prunePropagationPolicy
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Prune Propagation Policy
+    valueProvider:
+      type: xlrelease.ListOfStringValueProviderConfiguration
+      values:
+      - foreground
+      - background
+      - orphan
+    value: foreground
+  - type: xlrelease.BooleanVariable
+    key: replace
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Replace
+    description: "Caution: Uses kubectl replace/create commands"
+  - type: xlrelease.StringVariable
+    key: deleteWorkflowId
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Delete Workflow CI ID
+    description: CI ID of the the Delete Workflow to be triggered as delete action
+      from managed applications (this is set by template)
+  - type: xlrelease.StringVariable
+    key: updateWorkflowId
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Update Workflow CI ID
+    description: CI ID of the the Update Workflow to be triggered as edit action from
+      managed applicationsScript (this is set by template)
+  - type: xlrelease.MapStringStringVariable
+    key: repositoryListResponse
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Command Response
+    description: Command Response
+  - type: xlrelease.StringVariable
+    key: managedApplicationId
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Application ID
+    description: Application ID in Digital.ai Release
+  disableNotifications: true
+  author: Digital.ai
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/png
+    file: !file "template-logo/3da925ba0f190b8e450edd130822ee9edb822652/argocd.svg"
+  defaultTargetFolder: Digital.ai - Official/Workflow Executions
