@@ -493,5 +493,5 @@ spec:
   logo:
     type: xlrelease.TemplateLogo
     contentType: image/svg+xml
-    file: !file "template-logo/1336d33f613cec76ae8d02f10c5e6f34da6ac0a7/xld-helm-plugin.svg"
+    file: !file "template-logo/1336d33f613cec76ae8d02f10c5e6f34da6ac0a7/helm.svg"
   defaultTargetFolder: Digital.ai - Official/Workflow Executions

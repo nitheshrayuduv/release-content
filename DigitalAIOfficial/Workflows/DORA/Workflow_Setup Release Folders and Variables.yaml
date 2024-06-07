@@ -97,5 +97,5 @@ spec:
   logo:
     type: xlrelease.TemplateLogo
     contentType: image/svg+xml
-    file: !file "template-logo/e0a83e68906c3fff6f2ebefaec7d6b5445ae521d/digital-ai-release.svg"
+    file: !file "template-logo/e0a83e68906c3fff6f2ebefaec7d6b5445ae521d/release.svg"
   defaultTargetFolder: Digital.ai - Official/Workflow Executions

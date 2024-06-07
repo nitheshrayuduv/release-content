@@ -1,0 +1,126 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  path: Workflows/Helm
+  home: Digital.ai - Official/Workflows/Helm
+spec:
+- template: Helm install and uninstall application
+  description: The workflow provides the steps that install and uninstall the application
+    using Helm.
+  scheduledStartDate: 2024-02-23T09:00:00+05:30
+  dueDate: 2024-02-23T10:00:00+05:30
+  phases:
+  - phase: Install and Uninstall App
+    tasks:
+    - name: Helm Configuration
+      type: xlrelease.UserInputTask
+      description: Select the Helm configuration. You can create a new connection
+        if you have not created one.
+      variables:
+      - helmConfig
+    - name: Application Details for Install
+      type: xlrelease.UserInputTask
+      description: Provide the Application Details for Install
+      variables:
+      - releaseName
+      - chartName
+      - chartVersion
+      - namespace
+    - name: Repository Details for Install
+      type: xlrelease.UserInputTask
+      description: Provide the chart repository details for Install
+      variables:
+      - repositoryUrl
+      - repoUsername
+      - repoPassword
+    - name: Install Application
+      type: containerHelm.Install
+      description: The automated task to install the application.
+      variableMapping:
+        helmConfig: "${helmConfig}"
+        repoPassword: "${repoPassword}"
+      capabilities:
+      - remote
+      releaseName: "${releaseName}"
+      chartName: "${chartName}"
+      chartVersion: "${chartVersion}"
+      namespace: "${namespace}"
+      repositoryUrl: "${repositoryUrl}"
+      repoUsername: "${repoUsername}"
+    - name: Uninstall Application ?
+      type: xlrelease.UserInputTask
+      description: Do you want to uninstall the application installed in the previous
+        step?
+      variables:
+      - isUninstall
+    - name: Uninstall Application
+      type: containerHelm.Uninstall
+      description: The automated task to uninstall the application.
+      precondition: "releaseVariables['isUninstall']"
+      variableMapping:
+        helmConfig: "${helmConfig}"
+      capabilities:
+      - remote
+      releaseName: "${releaseName}"
+      namespace: "${namespace}"
+    color: '#3d6c9e'
+  kind: WORKFLOW
+  categories:
+  - Cloud & Container
+  variables:
+  - type: xlrelease.ReferenceVariable
+    key: helmConfig
+    showOnReleaseStart: false
+    label: Helm Config
+    description: Helm Configuration
+    referencedType: containerHelm.Config
+  - type: xlrelease.StringVariable
+    key: releaseName
+    showOnReleaseStart: false
+    label: Release Name
+    description: Name of the Helm release
+  - type: xlrelease.StringVariable
+    key: chartName
+    showOnReleaseStart: false
+    label: Chart Name
+    description: Name of the Helm chart
+  - type: xlrelease.StringVariable
+    key: chartVersion
+    showOnReleaseStart: false
+    label: Chart Version
+    description: Version of the Helm chart
+  - type: xlrelease.StringVariable
+    key: namespace
+    showOnReleaseStart: false
+    label: Namespace
+    description: Kubernetes namespace where the Helm chart will be installed or upgraded
+  - type: xlrelease.StringVariable
+    key: repositoryUrl
+    showOnReleaseStart: false
+    label: Repository URL
+    description: URL for the Helm chart repository
+  - type: xlrelease.StringVariable
+    key: repoUsername
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Username
+    description: Username for accessing the Helm chart repository
+  - type: xlrelease.PasswordStringVariable
+    key: repoPassword
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Password
+    description: Password for accessing the Helm chart repository
+  - type: xlrelease.BooleanVariable
+    key: isUninstall
+    requiresValue: false
+    showOnReleaseStart: false
+    label: "Yes"
+  disableNotifications: true
+  author: Digital.ai
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/svg+xml
+    file: !file "template-logo/d4ffac29df794cb05e1ddb8ebc53e70b0ae26b6a/helm.svg"
+  defaultTargetFolder: Digital.ai - Official/Workflow Executions

@@ -55,5 +55,5 @@ spec:
   logo:
     type: xlrelease.TemplateLogo
     contentType: image/png
-    file: !file "template-logo/cf55ce7b37a3127d605482aabbf8742fb59c220a/release-azure-integration.png"
+    file: !file "template-logo/cf55ce7b37a3127d605482aabbf8742fb59c220a/azure.svg"
   defaultTargetFolder: Digital.ai - Official/Workflow Executions

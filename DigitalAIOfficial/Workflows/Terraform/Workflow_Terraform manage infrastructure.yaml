@@ -1,0 +1,120 @@
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  path: Workflows/Terraform
+  home: Digital.ai - Official/Workflows/Terraform
+spec:
+- template: Terraform manage infrastructure
+  description: "Workflow provides the steps that create, update, or destroy infrastructure\
+    \ in the cloud using Terraform."
+  scheduledStartDate: 2023-09-15T09:00:00+05:30
+  dueDate: 2023-09-15T10:00:00+05:30
+  phases:
+  - phase: Create|Destroy Infra
+    tasks:
+    - name: Git Repository Information
+      type: xlrelease.UserInputTask
+      description: Provide the Git Repository Information where the Terraform configuration
+        files (.tf) are located.
+      variables:
+      - gitUrl
+      - branch
+      - gitDirPath
+      - gitToken
+    - name: Environment Variables and Values
+      type: xlrelease.UserInputTask
+      description: |-
+        The environment variables that can be set to customize the Terraform execution environment. This can include cloud provider authentication credentials.
+
+        Example for AWS :
+        {'AWS_ACCESS_KEY_ID': 'Your value', 'AWS_SECRET_ACCESS_KEY': 'Your value', 'AWS_SESSION_TOKEN': 'Your value'}
+      variables:
+      - environmentVariables
+    - name: Create or Update infrastructure ?
+      type: xlrelease.UserInputTask
+      description: Do you want to create or update infrastructure?
+      variables:
+      - isCreate
+    - name: Execute Terraform Apply
+      type: containerTerraform.Apply
+      description: |-
+        Automated task to execute the Terraform Apply command.
+        It creates or updates infrastructure as defined in your Terraform configurations.
+      precondition: "releaseVariables['isCreate']"
+      variableMapping:
+        gitToken: "${gitToken}"
+        environmentVariables: "${environmentVariables}"
+      capabilities:
+      - remote
+      gitUrl: "${gitUrl}"
+      branch: "${branch}"
+      gitDirPath: "${gitDirPath}"
+    - name: Destroy Infrastructure?
+      type: xlrelease.UserInputTask
+      description: Do you want to destroy infrastructure?
+      variables:
+      - isDestroy
+    - name: Execute Terraform Destroy
+      type: containerTerraform.Destroy
+      description: |-
+        Automated task to execute the Terraform Destroy command.
+        It destroys infrastructure as defined in your Terraform configurations.
+      precondition: "releaseVariables['isDestroy']"
+      variableMapping:
+        gitToken: "${gitToken}"
+        environmentVariables: "${environmentVariables}"
+      capabilities:
+      - remote
+      gitUrl: "${gitUrl}"
+      branch: "${branch}"
+      gitDirPath: "${gitDirPath}"
+    color: '#3d6c9e'
+  kind: WORKFLOW
+  categories:
+  - Infrastructure Service
+  variables:
+  - type: xlrelease.StringVariable
+    key: gitUrl
+    showOnReleaseStart: false
+    label: Git URL
+    description: Git URL is the web address of the Git repository with Terraform files
+  - type: xlrelease.StringVariable
+    key: branch
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Git Branch
+    description: Git Branch is the specific branch in that repository
+  - type: xlrelease.StringVariable
+    key: gitDirPath
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Git Directory Path
+    description: Git Directory Path is the folder location in the repository where
+      Terraform files are stored
+  - type: xlrelease.PasswordStringVariable
+    key: gitToken
+    requiresValue: false
+    showOnReleaseStart: false
+    label: Git Token
+    description: Git Token is the password-like code needed to access private repositories
+  - type: xlrelease.PasswordStringVariable
+    key: environmentVariables
+    showOnReleaseStart: false
+    label: Environment Variables
+    multiline: true
+  - type: xlrelease.BooleanVariable
+    key: isCreate
+    showOnReleaseStart: false
+    label: "Yes"
+  - type: xlrelease.BooleanVariable
+    key: isDestroy
+    showOnReleaseStart: false
+    label: "Yes"
+  disableNotifications: true
+  author: Digital.ai
+  logo:
+    type: xlrelease.TemplateLogo
+    contentType: image/svg+xml
+    file: !file "template-logo/d3c8d925bd5ba7eade886d24807eabedfe646c4c/terraform.svg"
+  defaultTargetFolder: Digital.ai - Official/Workflow Executions

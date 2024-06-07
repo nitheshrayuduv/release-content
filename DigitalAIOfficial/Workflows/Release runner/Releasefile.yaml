@@ -3,6 +3,6 @@ apiVersion: xl-release/v1
 kind: Import
 spec:
   imports:
-  - Workflow_Install additional Digital.ai Release runner in Kubernetes.yaml
-  - Workflow_Install Digital.ai Release runner in Kubernetes.yaml
-  - Workflow_Install Digital.ai Release runner with Digital.ai Cloud Connector.yaml
+  - Workflow_Digital.ai Release runner additional install in Kubernetes.yaml
+  - Workflow_Digital.ai Release runner install in Kubernetes.yaml
+  - Workflow_Digital.ai Release runner install with Digital.ai Cloud Connector.yaml
