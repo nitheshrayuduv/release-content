@@ -14,7 +14,7 @@ spec:
         tasks:
           - name: Get configuration details
             type: xlrelease.ScriptTask
-            description: Getting configuration details of the target deployment server. 
+            description: Getting configuration details of the target deployment server.
             script: |-
               from com.xebialabs.xlrelease.domain.environments import LiveDeployment
               
