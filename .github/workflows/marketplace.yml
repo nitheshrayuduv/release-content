@@ -6,7 +6,7 @@ name: Update Integrations Marketplace
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [ master ]
+    branches: [ release/25.1.x ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -42,6 +42,6 @@ jobs:
           ssh-key: ${{ secrets.key }}
 
       - run: |
-          cp integrations-marketplace/githubactions.sh .
-          chmod 777 githubactions.sh
-          ./githubactions.sh ${{ env.MATCHED_FILES }} ${{ env.plugin_name }} $PWD 'release'
+          cp integrations-marketplace/workflow_githubactions.sh .
+          chmod 777 workflow_githubactions.sh
+          ./workflow_githubactions.sh ${{ env.MATCHED_FILES }} ${{ env.plugin_name }} $PWD 'workflows'
