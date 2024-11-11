@@ -39,7 +39,7 @@ jobs:
         with:
           repository: xebialabs/integrations-marketplace
           path: integrations-marketplace
-          ssh-key: ${{ secrets.key }}
+          ssh-key: ${{ secrets.KEY }}
 
       - run: |
           cp integrations-marketplace/workflow_githubactions.sh .
