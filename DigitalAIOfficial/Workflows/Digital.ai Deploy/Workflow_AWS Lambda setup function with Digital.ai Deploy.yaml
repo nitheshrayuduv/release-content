@@ -20,7 +20,7 @@ spec:
         have not created one.
       variables:
       - deployServer
-    - name: Specify Environment Name
+    - name: Specify Environment Name.
       type: xlrelease.UserInputTask
       description: Specify a name for the environment CI that should be created for
         AWS in Digital.ai Deploy server.
