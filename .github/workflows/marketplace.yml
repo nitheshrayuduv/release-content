@@ -39,7 +39,7 @@ jobs:
         with:
           repository: xebialabs/integrations-marketplace
           path: integrations-marketplace
-          ssh-key: ${{ secrets.KEY }}
+          token: ${{ secrets.KEY }}
           ref: master
 
       - run: |
