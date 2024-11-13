@@ -5,7 +5,7 @@ metadata:
   path: Workflows/AWS
   home: Digital.ai - Official/Workflows/AWS
 spec:
-- template: AWS Lambda create function using S3 zip file 
+- template: AWS Lambda create function using S3 zip file
   description: Workflow provides the steps that create an AWS Lambda Function using
     S3 zip file.
   scheduledStartDate: 2023-09-20T09:00:00+05:30
@@ -16,7 +16,7 @@ spec:
     - name: AWS Server Connection
       type: xlrelease.UserInputTask
       description: |-
-        Select the AWS Server Connection and Provide the Region.
+        Select the AWS Server Connection and Provide the Region
         You can create a new connection if you have not created one.
       variables:
       - host
