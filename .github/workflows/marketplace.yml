@@ -29,10 +29,7 @@ jobs:
       - uses: technote-space/get-diff-action@v6
         with:
           FILES: |
-            manifest.json
-            synthetic.xml
-            *.png
-            *.svg
+            DigitalAiOfficial/Workflows/*.yaml
       - run: echo ${{ env.MATCHED_FILES }}
 
       - uses: actions/checkout@v2
