@@ -7,7 +7,7 @@ metadata:
 spec:
 - template: AWS Lambda create function using S3 zip file 
   description: Workflow provides the steps that create an AWS Lambda Function using
-    S3 zip file
+    S3 zip file.
   scheduledStartDate: 2023-09-20T09:00:00+05:30
   dueDate: 2023-09-20T10:00:00+05:30
   phases:
